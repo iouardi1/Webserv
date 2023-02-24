@@ -1,17 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   listeningSocket.hpp                                :+:      :+:    :+:   */
+/*   bindingSocket.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/02/24 20:54:26 by iouardi           #+#    #+#             */
-/*   Updated: 2023/02/24 20:55:38 by iouardi          ###   ########.fr       */
+/*   Created: 2023/02/24 20:21:21 by iouardi           #+#    #+#             */
+/*   Updated: 2023/02/24 22:16:32 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef LISTENINGSOCKET_HPP
-#define LISTENINGSOCKET_HPP
+#ifndef BINDINGSOET_HPP
+#define BINDINGSOET_HPP
+#include <iostream>
+#include "mySocket.hpp"
 
+namespace HDE
+{
+	class BindingSocket: public mySocket
+	{
+		public:
+			BindingSocket(int domain, int service, int protocol, int port, u_long interface);
+			int connect_to_network(int sock, struct sockaddr_in address);
+	};
+}
 
-#endif /* LISTENINGSOCKET_HPP */
+#endif /* BINDINGSOET_HPP */

@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/24 18:22:59 by iouardi           #+#    #+#             */
-/*   Updated: 2023/02/24 20:35:26 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/02/24 23:00:49 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ HDE::mySocket::mySocket(int domain, int service, int protocol, int port, u_long 
 	sock = socket(domain, service, protocol);
 	test_connection(sock);
 	//* establish connection
-	connection = connect_to_network(sock, address);
+	// connection = connect_to_network(sock, address);
 	test_connection(connection);
 }
 
