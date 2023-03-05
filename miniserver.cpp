@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/02/28 00:19:25 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/05 23:34:55 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,65 +19,233 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netinet/in.h>
+#include <vector>
+#include <arpa/inet.h>
 
+#define	BUFF_SIZE 1024
+#define SOCKTERROR -1
+
+int check(int exp, const char *msg)
+{
+	if (exp == SOCKTERROR)
+	{
+		perror (msg);
+		exit(EXIT_FAILURE);
+	}
+	return (exp);
+}
+
+void	*handle_connection(int client_socket)
+{
+	char	buffer[BUFF_SIZE];
+	size_t	bytes_read;
+	int		msgsize = 0;
+	char	actual_path[PATH_MAX + 1];
+
+	//* read the client's msg -- the name of the file read
+	while ((bytes_read = read(client_socket, buffer + msgsize, sizeof (buffer) - msgsize)))
+	{
+		msgsize += bytes_read;
+		if (msgsize > BUFF_SIZE - 1 || buffer[msgsize - 1] == '\n')
+			break ;
+	}
+	check(bytes_read, "recv error");
+	buffer[msgsize - 1] = '\0'; // null terminate the msg and remove the \n
+	std::cout << "REQUEST: " << buffer << std::endl;
+	
+	//* validity check
+	if (realpath(buffer, actual_path) == NULL)
+	{
+		std::cout << "ERROR(bad path): " << buffer << std::endl;
+		close(client_socket);
+		return NULL;
+	}
+
+	//* read the file and send its contents to client
+	FILE *fp = fopen(actual_path, "r");
+	if (fp == NULL)
+	{
+		std::cout << "ERROR(open): " << buffer << std::endl;
+		close(client_socket);
+		return NULL;
+	}
+	while ((bytes_read = fread(buffer, 1, BUFF_SIZE, fp)) > 0)
+		write (client_socket, buffer, bytes_read);
+	close(client_socket);
+	fclose(fp);
+	std::cout << "closing connection" << std::endl;
+	return NULL;
+}
+
+int accept_new_connection(int server_fd)
+{
+	int		addr_size = sizeof(sockaddr_in);
+	int		client_socket;
+	struct sockaddr_in	client_addr;
+	check(client_socket = accept(server_fd, (sockaddr *)&client_addr, (socklen_t *)&addr_size), "accept failed");
+	return client_socket;
+}
 
 int main()
 {
-	int server_fd;
+	int* server_fd;
 	struct sockaddr_in	addr;
-	const int port =  8000;
+	std::vector<std::pair<int, std::string> > obj;
+
+	obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
+	obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
+	obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
 
 	memset((char  *)&addr, 0, sizeof(struct sockaddr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(port);
+	int i = 0;
+	for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
+	{
+		addr.sin_family = AF_INET;
+		addr.sin_addr.s_addr = inet_addr(itr->second.c_str());
+		addr.sin_port = htons(itr->first);
 
-	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		perror("failes to create the socket");
-		return -1;
-	}
-	
-	if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	{
-		perror("failes to bind");
-		return -2;
-	}
-	
-	if (listen(server_fd, 2) < 0)
-	{
-		perror("failes to listen");
-		return -3;
-	}
-	
-	int new_socket;
-	struct sockaddr_in	client_addr;
-	socklen_t	client_addr_len;
-	while (1)
-	{
-		std::cout << "\n-----------waiting for new client---------------\n" << std::endl;
-		if ((new_socket = accept(server_fd, (sockaddr *)&client_addr, &client_addr_len)) < 0)
+		if ((server_fd[i] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		{
-			perror("accept");
-			close (server_fd);
-			exit(EXIT_FAILURE);
+			perror("failes to create the socket");
+			return -1;
 		}
 		
-
-		//*send and receive messages
-		char	buffer[30000] = {0};
-		int		valread = read(new_socket, buffer, 30000);
-		//* that's the buffer should be parsed   <3   aka  rania*//
-		std::cout << buffer << std::endl;
-		if  (valread < 0)
-			perror("nothing to read");
-		//* hello should be filled by the response aka hasnaa *//
-		const char	*hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-		write(new_socket, hello, strlen(hello));
-		close(new_socket);
+		if (bind(server_fd[i], (struct sockaddr *)&addr, sizeof(addr)) < 0)
+		{
+			perror("failes to bind");
+			return -2;
+		}
+		
+		if (listen(server_fd[i], 10) < 0)
+		{
+			perror("failes to listen");
+			return -3;
+		}
+		i++;
 	}
+		
+		fd_set	read_fds, write_fds, current_socket;
+		FD_ZERO(&current_socket);
+		FD_SET(server_fd[0], &current_socket);
+		// socklen_t	client_addr_len;
+		// FD_SET(server_fd, &read_fds);
+		int max_fd = server_fd[0];
+		// 				int flag = 0;
+		while (1)
+		{
+			read_fds = current_socket;
+			if (select(max_fd + 1, &read_fds, &write_fds, NULL, NULL) < 0)
+			{
+				perror("select error");
+				exit(EXIT_FAILURE);
+			}
+			
+			for (int i = 0; i <= max_fd; ++i)
+			{
+				if (FD_ISSET(i,  &read_fds))
+				{
+					if (i == server_fd[0])
+					{
+						//* new connection
+						int client_socket = accept_new_connection(server_fd[0]);
+						FD_SET(client_socket, &current_socket);
+						max_fd = ((max_fd > client_socket) ? max_fd : client_socket);
+					}
+					else
+					{
+						handle_connection(i);
+						FD_CLR(i, &current_socket);
+					}
+				}
+			}
+			//* wait for i/o events with a zero timeout;
+			// int	num_ready = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
+
+			// if (num_ready == -1)
+			// {
+			// 	perror("select");
+			// 	exit(EXIT_FAILURE);
+			// }
+			// else if (num_ready == 0)
+			// {
+			// 	std::cout << "no events to process" << std::endl;
+			// 	continue;
+			// }
+			// else
+			// {
+				//* check which file descriptor have events
+				// if (FD_ISSET(server_fd, &read_fds))
+				// {
+					/*  a new client connection has been made */
+					// for (int i = 0; i <= max_fd; ++i)
+					// {
+					// 	if (flag == 0)
+					// 	{
+					// 		new_socket = accept(server_fd, NULL, NULL);
+					// 		flag = 1;
+					// 		FD_SET(new_socket, &read_fds);
+					// 		max_fd = ((max_fd > new_socket) ? max_fd : new_socket);
+					// 		// perror("accept");
+					// 		// close (server_fd);
+					// 		// exit(EXIT_FAILURE);
+					// 	}
+					// 	//* add the new client socket to the read list
+		
+					// //*  loop through the client sockets to check for incoming data
+					// 	else
+					// 	{
+					// 		if (FD_ISSET(i, &read_fds))
+					// 		{
+					// 			//* incoming data from this socket
+					// 			char	buffer[1024];
+					// 			int num_bytes = recv(i, buffer, sizeof(buffer), 0);
+					// 			if (num_bytes == -1)
+					// 			{
+					// 				perror("recv");
+					// 				exit(EXIT_FAILURE);
+					// 			}
+					// 			else if (num_bytes == 0)
+					// 			{
+					// 				//* client deconnected, remove the socket from the read list
+					// 				FD_CLR(i, &read_fds);
+					// 				close(i);
+					// 			}
+					// 			else
+					// 			{
+					// 				//* process the incoming data
+					// 				FD_ISSET(i, &write_fds);
+					// 			}
+					// 		}
+					// 		else if (FD_ISSET(i, &write_fds))
+					// 		{
+					// 			const char	*hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+					// 			write(i, hello, strlen(hello));
+					// 		}
+					// 	}
+				// int		addr_size = sizeof(sockaddr_in);
+				// int		client_socket;
+				// struct sockaddr_in	client_addr;
+				// check(client_socket = accept(server_fd, (sockaddr *)&client_addr, (socklen_t *)&addr_size), "accept failed");
+				// handle_connection(server_fd);
+				// SO_REUSEADDR;
+			}
+			std::cout << "\n next client" << std::endl;
+			return 0;
+		}
+			
+
+			//*send and receive messages
+		// 	char	buffer[30000] = {0};
+		// 	int		valread = read(new_socket, buffer, 30000);
+		// 	//* that's the buffer should be parsed   <3   aka  rania*//
+		// 	std::cout << buffer << std::endl;
+		// 	if  (valread < 0)
+		// 		perror("nothing to read");
+		// 	//* hello should be filled by the response aka hasnaa *//
+		// 	const char	*hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+		// 	write(new_socket, hello, strlen(hello));
+		// 	close(new_socket);
+		// }
 
 	//* and here i created a miniserver that can take multiple requests at the same time *//
 
-	return 0;
-}
