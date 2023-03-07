@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/05 23:34:55 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/07 01:42:18 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@
 #include <netinet/in.h>
 #include <vector>
 #include <arpa/inet.h>
+#include <map>
+#include "mySocket.hpp"
 
 #define	BUFF_SIZE 1024
 #define SOCKTERROR -1
@@ -46,7 +48,7 @@ void	*handle_connection(int client_socket)
 	while ((bytes_read = read(client_socket, buffer + msgsize, sizeof (buffer) - msgsize)))
 	{
 		msgsize += bytes_read;
-		if (msgsize > BUFF_SIZE - 1 || buffer[msgsize - 1] == '\n')
+		if (msgsize > BUFF_SIZE - 1)
 			break ;
 	}
 	check(bytes_read, "recv error");
@@ -54,7 +56,7 @@ void	*handle_connection(int client_socket)
 	std::cout << "REQUEST: " << buffer << std::endl;
 	
 	//* validity check
-	if (realpath(buffer, actual_path) == NULL)
+	if (realpath(buffer, actual_path) == NULL) 
 	{
 		std::cout << "ERROR(bad path): " << buffer << std::endl;
 		close(client_socket);
@@ -86,78 +88,124 @@ int accept_new_connection(int server_fd)
 	return client_socket;
 }
 
+int	max_server_fd(std::map<int, int> server_fd, int max_fd)
+{
+	for (int i = 0; i < server_fd.size(); i++)
+	{
+		if (server_fd[i] > max_fd)
+			max_fd = server_fd[i];
+	}
+	return max_fd;
+}
+
+int	check_server_fd(std::map<int, int> *server_fd, int fd)
+{
+	for (std::map<int, int>::iterator itr = server_fd->begin(); itr != server_fd->end(); itr++)
+	{
+		if (itr->first == fd)
+		{
+			itr->second = false;
+			return fd;
+		}
+	}
+	return -1;
+}
+
 int main()
 {
-	int* server_fd;
-	struct sockaddr_in	addr;
+	mySocket	mysock(8000, "127.0.0.1");
 	std::vector<std::pair<int, std::string> > obj;
 
 	obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
 	obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
 	obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
 
-	memset((char  *)&addr, 0, sizeof(struct sockaddr));
-	int i = 0;
+
 	for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
 	{
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = inet_addr(itr->second.c_str());
-		addr.sin_port = htons(itr->first);
-
-		if ((server_fd[i] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		{
-			perror("failes to create the socket");
-			return -1;
-		}
-		
-		if (bind(server_fd[i], (struct sockaddr *)&addr, sizeof(addr)) < 0)
-		{
-			perror("failes to bind");
-			return -2;
-		}
-		
-		if (listen(server_fd[i], 10) < 0)
-		{
-			perror("failes to listen");
-			return -3;
-		}
-		i++;
+		mysock.set_port_and_ip(itr->first, itr->second);
+		mysock.createServer_socket();
 	}
+	
+	mysock.accept_client_request();
+
+	
+	// // int server_fd[1024];
+	// struct sockaddr_in	addr;
+	// std::vector<std::pair<int, std::string> > obj;
+
+	// obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
+	// obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
+	// obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
+	// std::vector<std::pair<int, int> > server_fd;
+	// // std::map<int, int> server_fd;
+
+
+	// memset((char  *)&addr, 0, sizeof(struct sockaddr));
+	// int i = 0;
+	// for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
+	// {
+	// 	addr.sin_family = AF_INET;
+	// 	addr.sin_addr.s_addr = inet_addr(itr->second.c_str());
+	// 	addr.sin_port = htons(itr->first);
+
+	// 	server_fd[i].push_back(std::make_pair((int)socket(AF_INET, SOCK_STREAM, 0), 1));
+	// 	if ((server_fd[i] = (int)(socket(AF_INET, SOCK_STREAM, 0))) < 0)
+	// 	{
+	// 		perror("failes to create the socket");
+	// 		return -1;
+	// 	}
 		
-		fd_set	read_fds, write_fds, current_socket;
-		FD_ZERO(&current_socket);
-		FD_SET(server_fd[0], &current_socket);
-		// socklen_t	client_addr_len;
-		// FD_SET(server_fd, &read_fds);
-		int max_fd = server_fd[0];
-		// 				int flag = 0;
-		while (1)
-		{
-			read_fds = current_socket;
-			if (select(max_fd + 1, &read_fds, &write_fds, NULL, NULL) < 0)
-			{
-				perror("select error");
-				exit(EXIT_FAILURE);
-			}
-			
-			for (int i = 0; i <= max_fd; ++i)
-			{
-				if (FD_ISSET(i,  &read_fds))
-				{
-					if (i == server_fd[0])
-					{
-						//* new connection
-						int client_socket = accept_new_connection(server_fd[0]);
-						FD_SET(client_socket, &current_socket);
-						max_fd = ((max_fd > client_socket) ? max_fd : client_socket);
-					}
-					else
-					{
-						handle_connection(i);
-						FD_CLR(i, &current_socket);
-					}
-				}
-			}
+	// 	if (bind(server_fd[i], (struct sockaddr *)&addr, sizeof(addr)) < 0)
+	// 	{
+	// 		perror("failes to bind");
+	// 		return -2;
+	// 	}
+		
+	// 	if (listen(server_fd[i], 10) < 0)
+	// 	{
+	// 		perror("failes to listen");
+	// 		return -3;
+	// 	}
+	// 	i++;
+	// }
+	
+	// fd_set	read_fds, write_fds, current_socket;
+	// FD_ZERO(&current_socket);
+	// FD_SET(server_fd[0], &current_socket);
+	// // socklen_t	client_addr_len;
+	// // FD_SET(server_fd, &read_fds);
+	// int max_fd = max_server_fd(server_fd, max_fd);
+	// // 				int flag = 0;
+	// while (1)
+	// {
+	// 	read_fds = current_socket;
+	// 	if (select(max_fd + 1, &read_fds, &write_fds, NULL, NULL) < 0)
+	// 	{
+	// 		perror("select error");
+	// 		exit(EXIT_FAILURE);
+	// 	}
+		
+	// 	for (int i = 0; i <= max_fd; ++i)
+	// 	{
+	// 		if (FD_ISSET(i,  &read_fds))
+	// 		{
+	// 			if (i == check_server_fd(&server_fd, i))
+	// 			{
+	// 				//* new connection
+	// 				int client_socket = accept_new_connection(i);
+	// 				FD_SET(client_socket, &current_socket);
+	// 				FD_CLR(i, &current_socket);
+	// 				max_fd = ((max_fd > client_socket) ? max_fd : client_socket);
+	// 			}
+	// 			else
+	// 			{
+	// 				handle_connection(i);
+	// 				FD_CLR(i, &current_socket);
+	// 			}
+	// 		}
+	// 	}
+	// }
 			//* wait for i/o events with a zero timeout;
 			// int	num_ready = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
 
@@ -228,7 +276,6 @@ int main()
 				// check(client_socket = accept(server_fd, (sockaddr *)&client_addr, (socklen_t *)&addr_size), "accept failed");
 				// handle_connection(server_fd);
 				// SO_REUSEADDR;
-			}
 			std::cout << "\n next client" << std::endl;
 			return 0;
 		}
