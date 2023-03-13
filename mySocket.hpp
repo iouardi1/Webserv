@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/24 18:22:49 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/07 01:36:24 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/13 13:52:46 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <netinet/in.h>
 #include <vector>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <map>
 
 class mySocket
@@ -32,20 +33,53 @@ class mySocket
 		std::string	ip;
 		int m_server_fd;
 		int m_new_socket;
+		int flags;
 		struct sockaddr_in m_server_address;//need to set some setters for these two depends on the ips i wanna listen to
 		struct sockaddr_in m_client_address;//need to set some setters for these two depends on the ips i wanna listen to
 		socklen_t m_addrlen;
 
 	public:
-    	explicit mySocket(int port, std::string ip) : m_port(port), ip(ip), m_server_fd(0), m_new_socket(0), m_server_address(), m_client_address(), m_addrlen(sizeof(m_client_address)) {}
+    	explicit mySocket(int port, std::string ip) : m_port(port), ip(ip), m_server_fd(0), m_new_socket(0), flags(0),  m_server_address(), m_client_address(), m_addrlen(sizeof(m_client_address)) {}
 
 
-		void set_port_and_ip(int port, std::string _ip)
+		void	set_port_and_ip(int port, std::string _ip)
 		{
 			m_port = port;
 			ip = _ip;
 		}
 	
+		void	set_new_socket(int new_socket)
+		{
+			m_new_socket = new_socket;
+		}
+		
+		int	get_new_socket()
+		{
+			return m_new_socket;
+		}
+
+		int get_server_fd()
+		{
+			return m_server_fd;
+		}
+		
+		struct sockaddr_in get_server_address()
+		{
+			return m_server_address;
+		}
+		
+		struct sockaddr_in& get_client_address()
+		{
+			// std::cout << "&m_client_address " << &m_client_address << std::endl;
+			return m_client_address;
+		}
+
+		socklen_t&	get_addrlen()
+		{
+			// std::cout << "&m_addrlen " << &m_addrlen << std::endl;
+			return m_addrlen;
+		}
+		
 		void createServer_socket()
 		{
 			// create server socket
@@ -79,14 +113,19 @@ class mySocket
 				perror("Listen failed");
 				exit(EXIT_FAILURE);
 			}
+			
+			// set server socket to non-blocking mode
+			flags = fcntl(m_server_fd, F_GETFL, 0);
+			fcntl(m_server_fd, F_SETFL, flags | O_NONBLOCK);
 		}
+	
 		void	accept_client_request()
 		{
 
 			std::cout << "Server listening on port " << m_port << std::endl;
 
 			// accept client connections
-			while (true) 
+			while (true)
 			{
 				m_new_socket = accept(m_server_fd, (struct sockaddr *) &m_client_address, &m_addrlen);
 				if (m_new_socket < 0) 

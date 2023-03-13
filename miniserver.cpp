@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/07 01:42:18 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/13 13:56:11 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,20 +115,43 @@ int main()
 {
 	mySocket	mysock(8000, "127.0.0.1");
 	std::vector<std::pair<int, std::string> > obj;
+	std::vector<mySocket> myServers;
 
 	obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
 	obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
 	obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
 
 
+	int		i = 0;
 	for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
 	{
 		mysock.set_port_and_ip(itr->first, itr->second);
-		mysock.createServer_socket();
+		myServers.push_back(mysock);
+		myServers[i++].createServer_socket();
 	}
-	
-	mysock.accept_client_request();
+	while (true)
+	{
+		for (i = 0; i < myServers.size(); i++)
+		{
+			myServers[i].set_new_socket(accept(myServers[i].get_server_fd(), (struct sockaddr *) &(myServers[i].get_client_address()), &(myServers[i].get_addrlen())));
+			// std::cout <<"myServers[i].get_client_address() " << &myServers[i].get_client_address() << "       &(myServers[i].get_addrlen()) "<< &(myServers[i].get_addrlen())<< std::endl;
+			if (myServers[i].get_new_socket() < 0) 
+			{
+				perror("Accept failed");
+				exit(EXIT_FAILURE);
+			}
 
+			char buffer[1024] = {0};
+			int valread = read(myServers[i].get_new_socket(), buffer, 1024);
+			std::cout << "Received: " << buffer << std::endl;
+			const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+			write(myServers[i].get_new_socket(), message, strlen(message));
+			// std::cout << "Sent: " << message << std::endl;
+
+			close(myServers[i].get_new_socket());
+		}
+		// myServers[i].accept_client_request();
+	}
 	
 	// // int server_fd[1024];
 	// struct sockaddr_in	addr;
