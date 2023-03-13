@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/13 19:46:48 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/13 23:09:06 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <arpa/inet.h>
 #include <map>
 #include "mySocket.hpp"
+#include "client.hpp"
 
 #define	BUFF_SIZE 1024
 #define SOCKTERROR -1
@@ -144,11 +145,8 @@ int main()
 		i++;
 	}
 
-	for (int i = 0; i < myServers.size(); i++)
-	{
-		// FD_SET(myServers[i].get_server_fd(), &write_fds);
-		
-	}
+	int j = 0;
+	std::vector<client> clients;
 	char buffer[1024] = {0};
 	int flag = 0;
 	while (true)
@@ -167,28 +165,34 @@ int main()
 			{
 				if (arr[i] == 0)
 				{
-					// mySocket new_sock = accept(myServers[i].get_server_fd(), (struct sockaddr *) &(myServers[i].get_client_address()), &(myServers[i].get_addrlen()));
 					int new_sock = (accept(i, NULL, NULL));
+					clients.push_back(new_sock);
 					if (new_sock < 0)
 					{
 						perror("accept");
-						exit(EXIT_FAILURE);
+						continue ;
+						// exit(EXIT_FAILURE);
 					}
-					 fcntl(new_sock, F_SETFL, O_NONBLOCK);
+					fcntl(new_sock, F_SETFL, O_NONBLOCK);
 					arr[new_sock] = 1;
 					FD_SET(new_sock, &read_fds);
-					std::cout << "her" << std::endl;
 					if (new_sock > max_fd)
 						max_fd = new_sock;
 						// max_fd = new_sock : new_sock >  max_fd ? new_sock ;
 				}
 				else
 				{
-					std::cout << "WEEESH DKHLTI\n" ;
 					int valread = read(i, buffer, 1024);
+					for (std::vector<client>::size_type j = 0; j < clients.size(); j++)
+					{
+						if (clients[j].get_socket() == i)
+							clients[j].get_client_request().parse2(buffer);
+					}
+					
 					if (valread < 0)
 					{
 						perror("read");
+						continue ;
 						// exit(EXIT_FAILURE);//
 					}
 					std::cout << "Received: " << buffer << std::endl;
