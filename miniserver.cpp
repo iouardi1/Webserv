@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/13 13:56:11 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/13 19:46:48 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,32 +123,88 @@ int main()
 
 
 	int		i = 0;
+	fd_set	read_fds, write_fds;
+	fd_set	m_read_fds, m_write_fds;
+	int		max_fd = 0;
+	
+	FD_ZERO(&read_fds);
+	FD_ZERO(&write_fds);
+	std::map<int, int>	arr;
+	int fd_a = 0;
 	for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
 	{
 		mysock.set_port_and_ip(itr->first, itr->second);
 		myServers.push_back(mysock);
-		myServers[i++].createServer_socket();
+		myServers[i].createServer_socket();
+		fd_a = myServers[i].get_server_fd();
+		FD_SET(fd_a, &read_fds);
+		arr[fd_a] = 0;
+		if (myServers[i].get_server_fd() > max_fd)
+			max_fd = myServers[i].get_server_fd();
+		i++;
 	}
+
+	for (int i = 0; i < myServers.size(); i++)
+	{
+		// FD_SET(myServers[i].get_server_fd(), &write_fds);
+		
+	}
+	char buffer[1024] = {0};
+	int flag = 0;
 	while (true)
 	{
-		for (i = 0; i < myServers.size(); i++)
+		m_read_fds = read_fds;
+		m_write_fds = write_fds;
+		int	activity = select(max_fd + 1, &m_read_fds, &m_write_fds, NULL, NULL);
+		if (activity < 0)
 		{
-			myServers[i].set_new_socket(accept(myServers[i].get_server_fd(), (struct sockaddr *) &(myServers[i].get_client_address()), &(myServers[i].get_addrlen())));
-			// std::cout <<"myServers[i].get_client_address() " << &myServers[i].get_client_address() << "       &(myServers[i].get_addrlen()) "<< &(myServers[i].get_addrlen())<< std::endl;
-			if (myServers[i].get_new_socket() < 0) 
+			perror("select");
+			exit(EXIT_FAILURE);
+		}
+		for (i = 0; i < max_fd + 1; i++)
+		{
+			if (FD_ISSET(i, &m_read_fds))
 			{
-				perror("Accept failed");
-				exit(EXIT_FAILURE);
+				if (arr[i] == 0)
+				{
+					// mySocket new_sock = accept(myServers[i].get_server_fd(), (struct sockaddr *) &(myServers[i].get_client_address()), &(myServers[i].get_addrlen()));
+					int new_sock = (accept(i, NULL, NULL));
+					if (new_sock < 0)
+					{
+						perror("accept");
+						exit(EXIT_FAILURE);
+					}
+					 fcntl(new_sock, F_SETFL, O_NONBLOCK);
+					arr[new_sock] = 1;
+					FD_SET(new_sock, &read_fds);
+					std::cout << "her" << std::endl;
+					if (new_sock > max_fd)
+						max_fd = new_sock;
+						// max_fd = new_sock : new_sock >  max_fd ? new_sock ;
+				}
+				else
+				{
+					std::cout << "WEEESH DKHLTI\n" ;
+					int valread = read(i, buffer, 1024);
+					if (valread < 0)
+					{
+						perror("read");
+						// exit(EXIT_FAILURE);//
+					}
+					std::cout << "Received: " << buffer << std::endl;
+					FD_CLR(i, &read_fds);
+				}
+
+				// close(myServers[i].get_new_socket());
 			}
-
-			char buffer[1024] = {0};
-			int valread = read(myServers[i].get_new_socket(), buffer, 1024);
-			std::cout << "Received: " << buffer << std::endl;
-			const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-			write(myServers[i].get_new_socket(), message, strlen(message));
-			// std::cout << "Sent: " << message << std::endl;
-
-			close(myServers[i].get_new_socket());
+			else if (FD_ISSET(i, &m_write_fds))
+			{
+				const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+				FD_SET(i, &write_fds);
+				write(i, message, strlen(message));
+				std::cout << "Sent: " << message << std::endl;
+				FD_CLR(i, &write_fds);
+			}
 		}
 		// myServers[i].accept_client_request();
 	}
