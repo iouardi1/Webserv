@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/14 18:46:36 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/14 22:49:49 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,10 +59,10 @@ std::pair<int, std::string>	getPortAndIpAddress_(std::string key)
 }
 
 int main()
-{
-	http											serv;
-	mySocket										mysock(80, "127.0.0.1");
-	std::vector<mySocket>							myServers;
+{	
+	http														serv;
+	mySocket													mysock(80, "127.0.0.1");
+	std::vector<mySocket>										myServers;
 	int															i = 0;
 	fd_set														read_fds, write_fds;
 	std::vector<client> 										clients;
@@ -73,14 +73,19 @@ int main()
 	int 														j = 0;
 	char 														buffer[1024] = {0};
 	int 														flag = 0;
-	std::map<std::string, std::vector<ft::server> >				mapy(serv.get_ipPort_matched_servers());
-	std::map<std::string, std::vector<ft::server> >::iterator	itrr(mapy.begin());
 	std::map<int, std::vector<ft::server> >						mapy_;
 	std::vector<std::pair<int, std::string> > 					obj;
 
+	serv.parser("CURRENT/f.config");
+	serv.check_servers_conflict();
+	
+	std::map<std::string, std::vector<ft::server> >				mapy(serv.get_ipPort_matched_servers());
+	std::map<std::string, std::vector<ft::server> >::iterator	itrr(mapy.begin());
 	
 	for (std::map<std::string, std::vector<ft::server> >::iterator itr = mapy.begin(); itr != mapy.end(); itr++)
+	{
 		obj.push_back(getPortAndIpAddress_(itr->first));
+	}
 
 	FD_ZERO(&read_fds);
 	FD_ZERO(&write_fds);
@@ -117,7 +122,6 @@ int main()
 				if (arr[i] == 0)
 				{
 					int new_sock = (accept(i, NULL, NULL));
-					// clients.push_back(new_sock);
 					if (new_sock < 0)
 					{
 						perror("accept");
@@ -128,7 +132,7 @@ int main()
 					fcntl(new_sock, F_SETFL, O_NONBLOCK);
 					arr[new_sock] = 1;
 					FD_SET(new_sock, &read_fds);
-					FD_CLR(i, &read_fds);
+					// FD_CLR(new_sock, &read_fds);
 					max_fd = ((max_fd > new_sock) ? max_fd : new_sock);
 				}
 				else
@@ -147,7 +151,8 @@ int main()
 							clients[j].get_client_request().parse2(buffer);
 					}
 					
-					std::cout << "Received: " << buffer << std::endl;
+					std::cout << buffer << std::endl;
+					FD_SET(i, &write_fds);
 					FD_CLR(i, &read_fds);
 				}
 
@@ -155,9 +160,7 @@ int main()
 			else if (FD_ISSET(i, &m_write_fds))
 			{
 				const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-				FD_SET(i, &write_fds);
 				write(i, message, strlen(message));
-				std::cout << "Sent: " << message << std::endl;
 				FD_CLR(i, &write_fds);
 			}
 		}
@@ -165,20 +168,3 @@ int main()
 	std::cout << "\n next client" << std::endl;
 	return 0;
 }
-	
-
-			//*send and receive messages
-		// 	char	buffer[30000] = {0};
-		// 	int		valread = read(new_socket, buffer, 30000);
-		// 	//* that's the buffer should be parsed   <3   aka  rania*//
-		// 	std::cout << buffer << std::endl;
-		// 	if  (valread < 0)
-		// 		perror("nothing to read");
-		// 	//* hello should be filled by the response aka hasnaa *//
-		// 	const char	*hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-		// 	write(new_socket, hello, strlen(hello));
-		// 	close(new_socket);
-		// }
-
-	//* and here i created a miniserver that can take multiple requests at the same time *//
-

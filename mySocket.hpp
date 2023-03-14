@@ -6,7 +6,7 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/24 18:22:49 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/13 19:19:00 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/15 00:13:01 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,132 +29,45 @@
 class mySocket
 {
 	private:
-		int m_port;
-		int	flag;
-		std::string	ip;
-		int m_server_fd;
-		int m_new_socket;
-		int flags;
-		struct sockaddr_in m_server_address;//need to set some setters for these two depends on the ips i wanna listen to
-		struct sockaddr_in m_client_address;//need to set some setters for these two depends on the ips i wanna listen to
-		socklen_t m_addrlen;
-
+		int 					m_port;
+		int						flag;
+		std::string				ip;
+		int 					m_server_fd;
+		int 					m_new_socket;
+		int 					flags;
+		struct sockaddr_in 		m_server_address;//need to set some setters for these two depends on the ips i wanna listen to
+	
 	public:
-    	explicit mySocket(int port, std::string ip) : m_port(port), flag(0), ip(ip), m_server_fd(0), m_new_socket(0), flags(0),  m_server_address(), m_client_address(), m_addrlen(sizeof(m_client_address)) {}
+
+		//* canonical form
+		mySocket();
+		mySocket(const mySocket& copy);
+		mySocket& 			operator=(const mySocket& copy);
+		~mySocket();
 
 
-		void	set_port_and_ip(int port, std::string _ip)
-		{
-			m_port = port;
-			ip = _ip;
-		}
-	
-		void	set_new_socket(int new_socket)
-		{
-			m_new_socket = new_socket;
-		}
+		//* constructor
+    	explicit 			mySocket(int port, std::string ip);
+
 		
-		int	get_new_socket()
-		{
-			return m_new_socket;
-		}
-
-		int get_server_fd()
-		{
-			return m_server_fd;
-		}
+		//* setters
+		void				set_port_and_ip(int port, std::string _ip);
+		void				set_new_socket(int new_socket);
+		void				set_server_fd(int i);
 		
-		void	set_server_fd(int i)
-		{
-			flag = i;
-		}
-		
-		struct sockaddr_in get_server_address()
-		{
-			return m_server_address;
-		}
-		
-		int	get_flag()
-		{
-			return flag;
-		}
-		
-		struct sockaddr_in& get_client_address()
-		{
-			// std::cout << "&m_client_address " << &m_client_address << std::endl;
-			return m_client_address;
-		}
 
-		socklen_t&	get_addrlen()
-		{
-			// std::cout << "&m_addrlen " << &m_addrlen << std::endl;
-			return m_addrlen;
-		}
-		
-		void createServer_socket()
-		{
-			// create server socket
-			m_server_fd = socket(AF_INET, SOCK_STREAM, 0);
-			if (m_server_fd == 0)
-			{
-				perror("Socket creation failed");
-				exit(EXIT_FAILURE);
-			}
+		//* getters
+		int					get_new_socket() const;
+		int					get_server_fd() const;
+		struct sockaddr_in	get_server_address() const;
+		int					get_flag() const;
+		struct sockaddr_in& get_client_address() const;
+		socklen_t&			get_addrlen() const;
+		int					get_port() const;
 
-			// set socket options
-			int opt = 1;
-			if (setsockopt(m_server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-				perror("Setsockopt failed");
-				exit(EXIT_FAILURE);
-			}
 
-			// bind server socket to port
-			m_server_address.sin_family = AF_INET;
-			m_server_address.sin_addr.s_addr = inet_addr(ip.c_str());
-			m_server_address.sin_port = htons(m_port);
-			if (bind(m_server_fd, (struct sockaddr *) &m_server_address, sizeof(m_server_address)) < 0)
-			{
-				perror("Bind failed");
-				exit(EXIT_FAILURE);
-			}
-
-			// listen for client connections
-			if (listen(m_server_fd, 100) < 0)
-			{
-				perror("Listen failed");
-				exit(EXIT_FAILURE);
-			}
-			
-			// set server socket to non-blocking mode
-			flags = fcntl(m_server_fd, F_GETFL, 0);
-			fcntl(m_server_fd, F_SETFL, flags | O_NONBLOCK);
-		}
-	
-		void	accept_client_request()
-		{
-
-			std::cout << "Server listening on port " << m_port << std::endl;
-
-			// accept client connections
-			while (true)
-			{
-				m_new_socket = accept(m_server_fd, (struct sockaddr *) &m_client_address, &m_addrlen);
-				if (m_new_socket < 0) 
-				{
-					perror("Accept failed");
-					exit(EXIT_FAILURE);
-				}
-
-				char buffer[1024] = {0};
-				int valread = read(m_new_socket, buffer, 1024);
-				std::cout << "Received: " << buffer << std::endl;
-				const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-				write(m_new_socket, message, strlen(message));
-				// std::cout << "Sent: " << message << std::endl;
-
-				close(m_new_socket);
-			}
-		}
+		//* useful member functions
+		void				createServer_socket();
 };
 
 #endif /* MYSOCKET_HPP */
