@@ -6,12 +6,13 @@
 /*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/27 19:32:28 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/13 23:09:06 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/14 18:46:36 by iouardi          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <iostream>
 #include <string>
+#include <cstdlib>
 #include <strings.h>
 #include <sys/_types/_fd_def.h>
 #include <sys/_types/_socklen_t.h>
@@ -25,130 +26,80 @@
 #include "mySocket.hpp"
 #include "client.hpp"
 
-#define	BUFF_SIZE 1024
-#define SOCKTERROR -1
 
-int check(int exp, const char *msg)
+std::vector<std::string>    get_tokens(std::string line, std::string delimiter)
 {
-	if (exp == SOCKTERROR)
-	{
-		perror (msg);
-		exit(EXIT_FAILURE);
-	}
-	return (exp);
+  size_t                      _start = 0;
+  size_t                      _end = 0;
+  std::string                 token;
+  std::vector<std::string>    tokens;
+
+  if (delimiter == " ")
+    line.push_back(delimiter[0]);
+  while ((_end = line.find(delimiter, _start))!= std::string::npos)
+  {
+    token = line.substr(_start, _end - _start);
+      _start = _end + delimiter.size();
+    if (!token.empty())
+      tokens.push_back(token);
+  }
+
+  return (tokens);
 }
 
-void	*handle_connection(int client_socket)
+std::pair<int, std::string>	getPortAndIpAddress_(std::string key)
 {
-	char	buffer[BUFF_SIZE];
-	size_t	bytes_read;
-	int		msgsize = 0;
-	char	actual_path[PATH_MAX + 1];
+	std::vector<std::string> tokens;
 
-	//* read the client's msg -- the name of the file read
-	while ((bytes_read = read(client_socket, buffer + msgsize, sizeof (buffer) - msgsize)))
-	{
-		msgsize += bytes_read;
-		if (msgsize > BUFF_SIZE - 1)
-			break ;
-	}
-	check(bytes_read, "recv error");
-	buffer[msgsize - 1] = '\0'; // null terminate the msg and remove the \n
-	std::cout << "REQUEST: " << buffer << std::endl;
-	
-	//* validity check
-	if (realpath(buffer, actual_path) == NULL) 
-	{
-		std::cout << "ERROR(bad path): " << buffer << std::endl;
-		close(client_socket);
-		return NULL;
-	}
-
-	//* read the file and send its contents to client
-	FILE *fp = fopen(actual_path, "r");
-	if (fp == NULL)
-	{
-		std::cout << "ERROR(open): " << buffer << std::endl;
-		close(client_socket);
-		return NULL;
-	}
-	while ((bytes_read = fread(buffer, 1, BUFF_SIZE, fp)) > 0)
-		write (client_socket, buffer, bytes_read);
-	close(client_socket);
-	fclose(fp);
-	std::cout << "closing connection" << std::endl;
-	return NULL;
-}
-
-int accept_new_connection(int server_fd)
-{
-	int		addr_size = sizeof(sockaddr_in);
-	int		client_socket;
-	struct sockaddr_in	client_addr;
-	check(client_socket = accept(server_fd, (sockaddr *)&client_addr, (socklen_t *)&addr_size), "accept failed");
-	return client_socket;
-}
-
-int	max_server_fd(std::map<int, int> server_fd, int max_fd)
-{
-	for (int i = 0; i < server_fd.size(); i++)
-	{
-		if (server_fd[i] > max_fd)
-			max_fd = server_fd[i];
-	}
-	return max_fd;
-}
-
-int	check_server_fd(std::map<int, int> *server_fd, int fd)
-{
-	for (std::map<int, int>::iterator itr = server_fd->begin(); itr != server_fd->end(); itr++)
-	{
-		if (itr->first == fd)
-		{
-			itr->second = false;
-			return fd;
-		}
-	}
-	return -1;
+	tokens = get_tokens(key + ":", ":");
+	if (tokens.size() == 1)
+		return (std::make_pair(std::atoi(tokens[0].c_str()), "127.0.0.1"));
+	else
+		return (std::make_pair(std::atoi(tokens[1].c_str()), tokens[0]));
 }
 
 int main()
 {
-	mySocket	mysock(8000, "127.0.0.1");
-	std::vector<std::pair<int, std::string> > obj;
-	std::vector<mySocket> myServers;
+	http											serv;
+	mySocket										mysock(80, "127.0.0.1");
+	std::vector<mySocket>							myServers;
+	int															i = 0;
+	fd_set														read_fds, write_fds;
+	std::vector<client> 										clients;
+	fd_set														m_read_fds, m_write_fds;
+	int															max_fd = 0;
+	std::map<int, int>											arr;
+	int 														fd_a = 0;
+	int 														j = 0;
+	char 														buffer[1024] = {0};
+	int 														flag = 0;
+	std::map<std::string, std::vector<ft::server> >				mapy(serv.get_ipPort_matched_servers());
+	std::map<std::string, std::vector<ft::server> >::iterator	itrr(mapy.begin());
+	std::map<int, std::vector<ft::server> >						mapy_;
+	std::vector<std::pair<int, std::string> > 					obj;
 
-	obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
-	obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
-	obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
-
-
-	int		i = 0;
-	fd_set	read_fds, write_fds;
-	fd_set	m_read_fds, m_write_fds;
-	int		max_fd = 0;
 	
+	for (std::map<std::string, std::vector<ft::server> >::iterator itr = mapy.begin(); itr != mapy.end(); itr++)
+		obj.push_back(getPortAndIpAddress_(itr->first));
+
 	FD_ZERO(&read_fds);
 	FD_ZERO(&write_fds);
-	std::map<int, int>	arr;
-	int fd_a = 0;
 	for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
 	{
 		mysock.set_port_and_ip(itr->first, itr->second);
 		myServers.push_back(mysock);
 		myServers[i].createServer_socket();
+		clients.push_back(myServers[i].get_server_fd());
+		mapy_.insert(std::make_pair(myServers[i].get_server_fd(), itrr->second));
 		fd_a = myServers[i].get_server_fd();
 		FD_SET(fd_a, &read_fds);
 		arr[fd_a] = 0;
 		if (myServers[i].get_server_fd() > max_fd)
 			max_fd = myServers[i].get_server_fd();
 		i++;
+		itrr++;
 	}
-
-	int j = 0;
-	std::vector<client> clients;
-	char buffer[1024] = {0};
-	int flag = 0;
+	serv.setSocketServers(mapy_);
 	while (true)
 	{
 		m_read_fds = read_fds;
@@ -166,40 +117,40 @@ int main()
 				if (arr[i] == 0)
 				{
 					int new_sock = (accept(i, NULL, NULL));
-					clients.push_back(new_sock);
+					// clients.push_back(new_sock);
 					if (new_sock < 0)
 					{
 						perror("accept");
+						FD_CLR(new_sock, &read_fds);
 						continue ;
 						// exit(EXIT_FAILURE);
 					}
 					fcntl(new_sock, F_SETFL, O_NONBLOCK);
 					arr[new_sock] = 1;
 					FD_SET(new_sock, &read_fds);
-					if (new_sock > max_fd)
-						max_fd = new_sock;
-						// max_fd = new_sock : new_sock >  max_fd ? new_sock ;
+					FD_CLR(i, &read_fds);
+					max_fd = ((max_fd > new_sock) ? max_fd : new_sock);
 				}
 				else
 				{
 					int valread = read(i, buffer, 1024);
+					if (valread < 0)
+					{
+						perror("read");
+						FD_CLR(i, &read_fds);
+						continue ;
+						// exit(EXIT_FAILURE);//
+					}
 					for (std::vector<client>::size_type j = 0; j < clients.size(); j++)
 					{
 						if (clients[j].get_socket() == i)
 							clients[j].get_client_request().parse2(buffer);
 					}
 					
-					if (valread < 0)
-					{
-						perror("read");
-						continue ;
-						// exit(EXIT_FAILURE);//
-					}
 					std::cout << "Received: " << buffer << std::endl;
 					FD_CLR(i, &read_fds);
 				}
 
-				// close(myServers[i].get_new_socket());
 			}
 			else if (FD_ISSET(i, &m_write_fds))
 			{
@@ -210,159 +161,11 @@ int main()
 				FD_CLR(i, &write_fds);
 			}
 		}
-		// myServers[i].accept_client_request();
 	}
+	std::cout << "\n next client" << std::endl;
+	return 0;
+}
 	
-	// // int server_fd[1024];
-	// struct sockaddr_in	addr;
-	// std::vector<std::pair<int, std::string> > obj;
-
-	// obj.insert(obj.begin(), std::make_pair(8000, "127.0.0.1"));
-	// obj.insert(obj.begin() + 1, std::make_pair(8001, "127.0.0.1"));
-	// obj.insert(obj.begin() + 2, std::make_pair(8002, "127.0.0.1"));
-	// std::vector<std::pair<int, int> > server_fd;
-	// // std::map<int, int> server_fd;
-
-
-	// memset((char  *)&addr, 0, sizeof(struct sockaddr));
-	// int i = 0;
-	// for (std::vector<std::pair<int, std::string> >::iterator itr = obj.begin(); itr != obj.end(); itr++)
-	// {
-	// 	addr.sin_family = AF_INET;
-	// 	addr.sin_addr.s_addr = inet_addr(itr->second.c_str());
-	// 	addr.sin_port = htons(itr->first);
-
-	// 	server_fd[i].push_back(std::make_pair((int)socket(AF_INET, SOCK_STREAM, 0), 1));
-	// 	if ((server_fd[i] = (int)(socket(AF_INET, SOCK_STREAM, 0))) < 0)
-	// 	{
-	// 		perror("failes to create the socket");
-	// 		return -1;
-	// 	}
-		
-	// 	if (bind(server_fd[i], (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	// 	{
-	// 		perror("failes to bind");
-	// 		return -2;
-	// 	}
-		
-	// 	if (listen(server_fd[i], 10) < 0)
-	// 	{
-	// 		perror("failes to listen");
-	// 		return -3;
-	// 	}
-	// 	i++;
-	// }
-	
-	// fd_set	read_fds, write_fds, current_socket;
-	// FD_ZERO(&current_socket);
-	// FD_SET(server_fd[0], &current_socket);
-	// // socklen_t	client_addr_len;
-	// // FD_SET(server_fd, &read_fds);
-	// int max_fd = max_server_fd(server_fd, max_fd);
-	// // 				int flag = 0;
-	// while (1)
-	// {
-	// 	read_fds = current_socket;
-	// 	if (select(max_fd + 1, &read_fds, &write_fds, NULL, NULL) < 0)
-	// 	{
-	// 		perror("select error");
-	// 		exit(EXIT_FAILURE);
-	// 	}
-		
-	// 	for (int i = 0; i <= max_fd; ++i)
-	// 	{
-	// 		if (FD_ISSET(i,  &read_fds))
-	// 		{
-	// 			if (i == check_server_fd(&server_fd, i))
-	// 			{
-	// 				//* new connection
-	// 				int client_socket = accept_new_connection(i);
-	// 				FD_SET(client_socket, &current_socket);
-	// 				FD_CLR(i, &current_socket);
-	// 				max_fd = ((max_fd > client_socket) ? max_fd : client_socket);
-	// 			}
-	// 			else
-	// 			{
-	// 				handle_connection(i);
-	// 				FD_CLR(i, &current_socket);
-	// 			}
-	// 		}
-	// 	}
-	// }
-			//* wait for i/o events with a zero timeout;
-			// int	num_ready = select(max_fd + 1, &read_fds, &write_fds, NULL, NULL);
-
-			// if (num_ready == -1)
-			// {
-			// 	perror("select");
-			// 	exit(EXIT_FAILURE);
-			// }
-			// else if (num_ready == 0)
-			// {
-			// 	std::cout << "no events to process" << std::endl;
-			// 	continue;
-			// }
-			// else
-			// {
-				//* check which file descriptor have events
-				// if (FD_ISSET(server_fd, &read_fds))
-				// {
-					/*  a new client connection has been made */
-					// for (int i = 0; i <= max_fd; ++i)
-					// {
-					// 	if (flag == 0)
-					// 	{
-					// 		new_socket = accept(server_fd, NULL, NULL);
-					// 		flag = 1;
-					// 		FD_SET(new_socket, &read_fds);
-					// 		max_fd = ((max_fd > new_socket) ? max_fd : new_socket);
-					// 		// perror("accept");
-					// 		// close (server_fd);
-					// 		// exit(EXIT_FAILURE);
-					// 	}
-					// 	//* add the new client socket to the read list
-		
-					// //*  loop through the client sockets to check for incoming data
-					// 	else
-					// 	{
-					// 		if (FD_ISSET(i, &read_fds))
-					// 		{
-					// 			//* incoming data from this socket
-					// 			char	buffer[1024];
-					// 			int num_bytes = recv(i, buffer, sizeof(buffer), 0);
-					// 			if (num_bytes == -1)
-					// 			{
-					// 				perror("recv");
-					// 				exit(EXIT_FAILURE);
-					// 			}
-					// 			else if (num_bytes == 0)
-					// 			{
-					// 				//* client deconnected, remove the socket from the read list
-					// 				FD_CLR(i, &read_fds);
-					// 				close(i);
-					// 			}
-					// 			else
-					// 			{
-					// 				//* process the incoming data
-					// 				FD_ISSET(i, &write_fds);
-					// 			}
-					// 		}
-					// 		else if (FD_ISSET(i, &write_fds))
-					// 		{
-					// 			const char	*hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
-					// 			write(i, hello, strlen(hello));
-					// 		}
-					// 	}
-				// int		addr_size = sizeof(sockaddr_in);
-				// int		client_socket;
-				// struct sockaddr_in	client_addr;
-				// check(client_socket = accept(server_fd, (sockaddr *)&client_addr, (socklen_t *)&addr_size), "accept failed");
-				// handle_connection(server_fd);
-				// SO_REUSEADDR;
-			std::cout << "\n next client" << std::endl;
-			return 0;
-		}
-			
 
 			//*send and receive messages
 		// 	char	buffer[30000] = {0};

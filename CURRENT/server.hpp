@@ -45,6 +45,7 @@ namespace ft{
 		
 		std::vector<std::string>    		get_tokens(std::string line, std::string delimiter);
 		std::pair<std::string, std::string>	getPortAndIpAddress() ;
+		std::pair<std::string, std::string>	getPortAndIpAddress_() ;
 	};
 }
 #endif
