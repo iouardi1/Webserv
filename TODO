@@ -1,0 +1,18 @@
+//TODO 
+/*
+!if root doesn't exist in server && location ==>internal server error Done
+!test with the right location
+!file index
+!Delete Method
+!Put the parsing inside try/catch block
+*/
+
+
+/*
+GET && DELETE : Change the directory of our webserver by the directory of location. hmmm to think about!
+listDirContent of the location's directory  !DONE 
+GenerateRandomFileNames
+!EDIT is_directory_has_index_files : path; check which path the root or location_dir? !DONE
+!Redirection
+?why can't I perform multiple requests????????????
+*/

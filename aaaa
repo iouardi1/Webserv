@@ -1,0 +1,17 @@
+<!Doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>test</title>
+		<!--<link rel="stylesheet" href="./styles.css"> -->
+		<style>
+			h1 {
+	background-color: purple;
+	color:antiquewhite;
+}
+		</style>
+	</head>
+	<body>
+		<h1>DONE!</h1>
+	</body>
+</html>
