@@ -1,4 +1,3 @@
-
 #include "server.hpp"
 
 ft::server::server() : listen_directive(std::string()), server_name_directive(std::vector<std::string>()), max_body_size_directive(std::string()),

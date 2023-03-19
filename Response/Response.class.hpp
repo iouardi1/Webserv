@@ -6,7 +6,7 @@
 /*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/05 07:15:56 by het-tale          #+#    #+#             */
-/*   Updated: 2023/03/16 17:25:15 by het-tale         ###   ########.fr       */
+/*   Updated: 2023/03/19 00:11:46 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,7 @@ class Response
 		std::string	_index_file;
 		std::string	_serv;
 		std::string _date;
+		std::string	_root;
 		bool		_isAutoIndexed;
 		bool		_isDir;
 		size_t		_contentLength;
@@ -112,7 +113,7 @@ class Response
 		bool		is_dir_has_index();
 		void		file_handler(std::string file, std::string method);
 		void		cgi_handler(std::string method);
-		std::string	generateErrorPages(int code);
+		std::string	generateErrorPages(int code, std::string name);
 		void		Get_Post(std::string method);
 		
 		void		initRequest();

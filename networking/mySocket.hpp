@@ -6,7 +6,7 @@
 /*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/24 18:22:49 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/15 01:55:21 by het-tale         ###   ########.fr       */
+/*   Updated: 2023/03/19 15:15:29 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,7 +117,7 @@ class mySocket
                 perror("accept failed");
                 exit(EXIT_FAILURE);
             }
-            std::cout << "New connection from " << inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << std::endl;
+            //std::cout << "New connection from " << inet_ntoa(client_address.sin_addr) << ":" << ntohs(client_address.sin_port) << std::endl;
             client_sockets.push_back(new_socket);
         }
 
@@ -125,11 +125,11 @@ class mySocket
             sd = client_sockets[i];
             if (FD_ISSET(sd, &read_fds)) {
                 if (read(sd, buffer, 1024) == 0) {
-                    std::cout << "Client " << sd << " disconnected" << std::endl;
+                    //std::cout << "Client " << sd << " disconnected" << std::endl;
                     close(sd);
                     client_sockets.erase(client_sockets.begin() + i);
                 } else {
-                    std::cout << "Client " << sd << " sent message: " << buffer << std::endl;
+                    //std::cout << "Client " << sd << " sent message: " << buffer << std::endl;
                     send(sd, "Message received", strlen("Message received"), 0);
                 }
             }
@@ -156,10 +156,10 @@ if (ready_fds == -1) {
     if (n == -1) {
         perror("read");
     } else {
-        std::cout << "Read " << n << " bytes: " << buffer << std::endl;
+        //std::cout << "Read " << n << " bytes: " << buffer << std::endl;
     }
 } else {
-    std::cout << "No data available to read" << std::endl;
+    //std::cout << "No data available to read" << std::endl;
 }*/
 
 
@@ -176,11 +176,11 @@ if (ready_fds == -1) {
 
                 char buffer[1024] = {0};
                 int valread = read(new_sock.get_new_socket(), buffer, 1024);
-                std::cout << "Received: " << buffer << std::endl;
+                //std::cout << "Received: " << buffer << std::endl;
 
                 const char *message = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
                 write(new_sock.get_new_socket(), message, strlen(message));
-                std::cout << "Sent: " << message << std::endl;
+                //std::cout << "Sent: " << message << std::endl;
 
                 new_sock.close_socket();
             }

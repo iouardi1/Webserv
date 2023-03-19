@@ -225,7 +225,7 @@ std::vector<std::string>    http::get_tokens(std::string line, std::string delim
 
    	line.push_back(delimiter[0]);
 	
-    while (    ((_end = line.find(delimiter, _start))!= std::string::npos) || (((_end2 = line.find("\t", _start))!= std::string::npos && std::cout << "okk ")) )
+   while (    ((_end = line.find(delimiter, _start))!= std::string::npos) || (((_end2 = line.find("\t", _start))!= std::string::npos && std::cout << "okk ")) )// rania mahada??
     {
 		
         if (_end != std::string::npos)

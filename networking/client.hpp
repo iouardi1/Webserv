@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   client.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: iouardi <iouardi@student.42.fr>            +#+  +:+       +#+        */
+/*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/13 22:32:24 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/17 17:17:56 by iouardi          ###   ########.fr       */
+/*   Updated: 2023/03/19 15:33:17 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@ class   client
 	private:
 		int                         								socket_server;
 		std::vector<std::pair<std::pair<int, bool>, Request> >		socket_responses;
+		std::string resp_message;
+		int	flag;
 
 	public:
 		client();
@@ -39,6 +41,9 @@ class   client
 		void    set_socket_server(int socket_);
 		void    set_socket_responses(int socket_, bool flag, Request client_request);
 		void	set_sock_flag(bool flag, int index);
+		bool	setRequestEnd_(bool x, int index);
+		void	set_resp_message(std::string msg);
+		void	setFlag(int flag);
 		// bool	parse_request(std::string s, std::map<int, std::vector<ft::server> > m);
 
 	
@@ -47,7 +52,13 @@ class   client
 		std::vector<std::pair<std::pair<int, bool>, Request> >	get_socket_responses() const;
 		bool													parse_request(std::string s, std::map<int, std::vector<ft::server> > m, int index);
 		bool    												get_sock_flag(int index) const;
+		std::string												get_resp_message() const;
+		int	getFlag() const;
+
+
+		//* utiles
+		void    remove_sock(int index);
 };
 
 
-#endif /* AED5C75D_038B_4348_9995_2FD3969B7DA0 */
+#endif

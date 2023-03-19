@@ -209,7 +209,7 @@ std::vector<std::string>    Request::get_tokens(std::string line, std::string de
 
 //   if (delimiter == " ")
 //     line.push_back(delimiter[0]);
-//   while (((_end = line.find(delimiter, _start))!= std::string::npos) || (((_end2 = line.find("\r", _start))!= std::string::npos && std::cout << "okk ")) )
+//   while (((_end = line.find(delimiter, _start))!= std::string::npos) || (((_end2 = line.find("\r", _start))!= std::string::npos && //std::cout << "okk ")) )
 //   {
 //     if (_end != std::string::npos)
 //         _end2 = line.find("\t", _start);
@@ -251,7 +251,7 @@ void  Request::setHeaderLine(std::string line)
   {
 	for (std::vector<std::string>::size_type i = 1; i < tokens.size(); i++)
 		val.push_back(tokens[i]);
-	std::cout << "tokens 0 :" << tokens[0] << " tokens 1:" << tokens.size() << std::endl;
+	//std::cout << "tokens 0 :" << tokens[0] << " tokens 1:" << tokens.size() << std::endl;
     setHeaderFields(std::make_pair(tokens[0], val));
   }
 

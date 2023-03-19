@@ -6,7 +6,7 @@
 /*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/01 10:24:04 by het-tale          #+#    #+#             */
-/*   Updated: 2023/03/14 17:44:50 by het-tale         ###   ########.fr       */
+/*   Updated: 2023/03/19 15:15:29 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ void deleteFolderContent(const char *path) {
                     rmdir(subPath.c_str());
                 } else {
                     if (remove(subPath.c_str()) == -1)
-						std::cout << "fail\n";
+						//std::cout << "fail\n";
                 }
             }
         }
@@ -89,9 +89,9 @@ int main()
 	// std::string name = "hasnaaC";
 	// std::string::reverse_iterator it = name.rbegin();
 	// if (*it == 'B')
-	// 	std::cout << *it << std::endl;
+	// 	//std::cout << *it << std::endl;
 	// else
-	// 	std::cout << "hello" << std::endl;
+	// 	//std::cout << "hello" << std::endl;
 
 	// std::string root_dir = "./";  // Root directory path
     // std::string filename = "includess";  // Name of the file to search for
@@ -102,7 +102,7 @@ int main()
     //     while ((entry = readdir(dir)) != NULL) {
     //         std::string entry_name(entry->d_name);
     //         if (entry_name == filename) {
-    //             std::cout << "File found in root directory.\n";
+    //             //std::cout << "File found in root directory.\n";
     //             closedir(dir);
     //             return 0;
     //         }
@@ -110,7 +110,7 @@ int main()
     //     closedir(dir);
     // }
     
-    // std::cout << "File not found in root directory.\n";
+    // //std::cout << "File not found in root directory.\n";
     // return 1;
 
 
@@ -119,12 +119,12 @@ int main()
 	// if (stat(fileName.c_str(), &fileInfo) == 0)
 	// {
 	// 	if (S_ISDIR(fileInfo.st_mode))
-	// 		 std::cout << "File found in root directory. and is a directory\n";
+	// 		 //std::cout << "File found in root directory. and is a directory\n";
 	// 	else
-	// 		std::cout << "bla bla\n";
+	// 		//std::cout << "bla bla\n";
 	// }
 	// else
-	// 	std::cout << "File not found in root directory.\n";
+	// 	//std::cout << "File not found in root directory.\n";
 
 
 	// std::ifstream file("server.c");  // Open file for reading
@@ -132,12 +132,12 @@ int main()
     
     // if (file.is_open()) {
     //     while (getline(file, line)) {
-    //         std::cout << line << std::endl;  // Print each line
+    //         //std::cout << line << std::endl;  // Print each line
     //     }
     //     file.close();  // Close file when done
     // }
     // else {
-    //     std::cout << "Unable to open file." << std::endl;
+    //     //std::cout << "Unable to open file." << std::endl;
     //     return 1;
     // }
     
@@ -149,8 +149,8 @@ int main()
 	// std::ifstream file("server.c");  // Open file for reading
     // std::string line;
     
-	// std::cout << "Before \n";
-	// std::cout << buffer;
+	// //std::cout << "Before \n";
+	// //std::cout << buffer;
 	
     // if (file.is_open())
 	// {
@@ -162,8 +162,8 @@ int main()
     //     file.close();  // Close file when done
     // }
 
-	// std::cout << "After \n";
-	// std::cout << buffer;
+	// //std::cout << "After \n";
+	// //std::cout << buffer;
 
 
 	// DIR *dir;
@@ -172,9 +172,9 @@ int main()
     // dir = opendir(".");
     // if (dir != NULL) {
     //     while ((ent = readdir(dir)) != NULL) {
-    //         std::cout << ent->d_name << std::endl;
-    //         std::cout << ent->d_namlen << std::endl;
-    //         std::cout << ent->d_ino << std::endl;
+    //         //std::cout << ent->d_name << std::endl;
+    //         //std::cout << ent->d_namlen << std::endl;
+    //         //std::cout << ent->d_ino << std::endl;
     //     }
     //     closedir(dir);
     // } else {
@@ -193,9 +193,9 @@ int main()
     // if (dir != NULL) {
     //     while ((ent = readdir(dir)) != NULL) {
     //         stat(ent->d_name, &st);
-    //         std::cout << "Name: " << "| " << ent->d_name << " | " ;//<< st.st_size << " " << ctime(&st.st_ctime);
-	// 		std::cout << "Size: " << "| " << st.st_size << " | ";
-	// 		std::cout << "Time: " << "| " << ctime(&st.st_ctime);
+    //         //std::cout << "Name: " << "| " << ent->d_name << " | " ;//<< st.st_size << " " << ctime(&st.st_ctime);
+	// 		//std::cout << "Size: " << "| " << st.st_size << " | ";
+	// 		//std::cout << "Time: " << "| " << ctime(&st.st_ctime);
     //     }
     //     closedir(dir);
     // } else {
@@ -244,7 +244,7 @@ int main()
 	// std::stringstream ss;
 	// ss << code;
 	// hello += ss.str();
-	// std::cout << hello << std::endl;
+	// //std::cout << hello << std::endl;
 
 	// std::string				file("index");
 	// std::string::iterator	it;
@@ -257,20 +257,20 @@ int main()
 	// 		position = i;
 	// 	i++;
 	// }
-	// std::cout << position << std::endl;
-	// std::cout << file.substr(position + 1) << std::endl;
+	// //std::cout << position << std::endl;
+	// //std::cout << file.substr(position + 1) << std::endl;
 
 
 	//deleteFolderContent("../myfolder");
 	// if (remove("myfolder/index") == -1)
-	// 	std::cout << "fail\n";
+	// 	//std::cout << "fail\n";
 
 	// const char* filename = "/index.html";
 
     // const char* last_slash = strrchr(filename, '/'); // Find last occurrence of '/' character
     
     // if (last_slash == NULL) { // If no '/' character was found
-    //     std::cout << "Unable to determine directory of file." << std::endl;
+    //     //std::cout << "Unable to determine directory of file." << std::endl;
     // } else {
     //     int length = last_slash - filename; // Calculate length of directory path
 	// 	if (!length)
@@ -285,18 +285,18 @@ int main()
 	// 	}
     //     directory[length] = '\0'; // Null-terminate char array
         
-    //     std::cout << "Directory: " << directory << std::endl;
+    //     //std::cout << "Directory: " << directory << std::endl;
     // }
 
 	// char path[] = "/Users/het-tale/cursus/42_webserv/myfolder/file1";
     // char* dir = dirname(path);
-    // std::cout << "Parent directory: " << dir << std::endl;
+    // //std::cout << "Parent directory: " << dir << std::endl;
 	// if (remove(path) == -1)
 	// {
 	// 	if (access(dir, W_OK) == 0)
-	// 		std::cout << "Internal error " << dir << std::endl;
+	// 		//std::cout << "Internal error " << dir << std::endl;
 	// 	else
-	// 		std::cout << "Forbidden " << dir << std::endl;
+	// 		//std::cout << "Forbidden " << dir << std::endl;
 	// }
 
 	//  time_t now = time(0);
@@ -304,17 +304,17 @@ int main()
     // char buffer[80];
 
     // strftime(buffer, 80, "Date: %a, %d %b %Y %H:%M:%S GMT", timeinfo);
-    // std::cout << buffer << std::endl;
+    // //std::cout << buffer << std::endl;
 
-	// std::cout << generatRandomFileName("hello") << std::endl;
-	// std::cout << generatRandomFileName("hello") << std::endl;
+	// //std::cout << generatRandomFileName("hello") << std::endl;
+	// //std::cout << generatRandomFileName("hello") << std::endl;
 
 	std::string path = "/Users/het-tale/cursus/42_webserv/";
 	std::string dir = "/okk";
 	std::string newPath;
-	std::cout << path.size() << std::endl;
+	//std::cout << path.size() << std::endl;
 	newPath.insert(0, path.c_str(), path.size() - 1);
 	newPath.append(dir);
-	std::cout << newPath << std::endl;
+	//std::cout << newPath << std::endl;
 }
 

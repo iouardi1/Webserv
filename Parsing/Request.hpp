@@ -1,3 +1,4 @@
+
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
@@ -30,6 +31,8 @@ class Request
 		ft::location											loc;
 		bool 													matchedServ;
 		bool													request_end;
+		size_t													body_length;
+		int 													errorCode;
 	
 	public:
 
@@ -62,6 +65,8 @@ class Request
 		ft::location										getLoc() const;
 		bool												getMatchedServ() const;
 		bool												getRequestEnd() const;
+		size_t												getBodyLength() const;
+		int 												getErrorCode() const;
 
 	/********************************************************/
 
@@ -71,6 +76,7 @@ class Request
 		void	setMethod(std::string x);
 		void	setHttpVersion(std::string x);
 		void	setHeaderFields(std::pair<std::string, std::vector<std::string> > value);
+		void	setRequestEnd(bool x);
 
 	/********************************************************/
 
@@ -90,6 +96,9 @@ class Request
 		size_t						hexToDec(std::string s);
 		int							hexToDecHelper(char c);
 		void						locationMatching();
+		void						checkUriErrors();
+		void						CheckBodyMaxSize();
+		bool						errorCase();
 		
 
 

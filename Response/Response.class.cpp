@@ -6,7 +6,7 @@
 /*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/05 07:18:48 by het-tale          #+#    #+#             */
-/*   Updated: 2023/03/16 18:31:09 by het-tale         ###   ########.fr       */
+/*   Updated: 2023/03/19 15:15:29 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 
 Response::Response()
 {
+	//std::cout << "\033[1;36mRequest1 +++\033[0m" << std::endl;
 	this->_ResponseBuffer = "";
 	this->_contentType = "";
 	this->_contentLength = 0;
@@ -23,6 +24,7 @@ Response::Response()
 	this->_loc = "";
 	this->_code = 0;
 	this->_msg = "";
+	this->_root = "";
 	this->_serv = "webserv/1.1";
 	init_http_codes();
 	init_mime_types();
@@ -30,6 +32,7 @@ Response::Response()
 
 Response::Response(Request req, ft::server server)
 {
+	//std::cout << "\033[1;37mRequest2+++\033[0m" << std::endl;
 	this->_server = server;
 	this->_request = req;
 	this->_ResponseBuffer = "";
@@ -39,6 +42,7 @@ Response::Response(Request req, ft::server server)
 	this->_loc = "";
 	this->_code = 0;
 	this->_msg = "";
+	this->_root = "";
 	this->_serv = "webserv/1.1";
 	this->_location = _request.getLoc();
 	init_http_codes();
@@ -190,7 +194,9 @@ void	Response::HandleMultipleCases()
 		setCodeMsg(301, "Moved Permanently");
 		std::string tmp = "http://localhost:";
 		tmp.append(_server.get_listen_directive());
-		this->_loc = tmp.append("/");
+		//std::cout << "waaaaaaaaaa\n";
+		if (_location.get_return().at(1).at(0) != '/')
+			this->_loc = tmp.append("/");
 		this->_loc = tmp.append(_location.get_return().at(1));
 		return ;
 	}
@@ -208,7 +214,7 @@ void	Response::HandleMultipleCases()
 					_allow.append(", ");
 				i++;
 			}
-			_body = generateErrorPages(_code);
+			_body = generateErrorPages(_code, "Hasnaa");
 			return ;
 		}
 		else
@@ -242,7 +248,7 @@ void	Response::Get_Post(std::string method)
 	if (!isResourceExist())
 	{
 		setCodeMsg(404, "Not Found");
-		_body = generateErrorPages(_code);
+		_body = generateErrorPages(_code, "Hasnaa");
 		return ;
 	}
 	else
@@ -255,26 +261,28 @@ void	Response::Get_Post(std::string method)
 					std::string tmp = "http://localhost:";
 					tmp.append(_server.get_listen_directive());
 					this->_loc = tmp.append(this->_request.getTarget().append("/"));
-					std::cout << "tmp: " << tmp << std::endl;
+					//std::cout << "tmp: " << tmp << std::endl;
 					return ;
 			}
 			else
 			{
 				if (!is_dir_has_index())
 				{
+					//std::cout << "look here\n";
+					//std::cout << "autoIndex: " << _location.get_autoindex() << std::endl;
 					if (_code) //this for the 500 error 
 						return ;
 					if (_location.get_autoindex() == "off" || _location.get_autoindex() == "")
 					{
 						setCodeMsg(403, "Forbidden");
-						_body = generateErrorPages(_code);
+						_body = generateErrorPages(_code, "Hasnaa");
 						return ;
 					}
 					else if (_location.get_autoindex() == "on")
 					{
 						setCodeMsg(200, "OK");
 						_body = listDirContent(); //check which directory is it always root or  the requested dir?
-						_contentType = this->mimeTypes["Default"];
+						_contentType = this->mimeTypes["html"];
 						return ;
 					}
 				}
@@ -287,9 +295,8 @@ void	Response::Get_Post(std::string method)
 			setCodeMsg(200, "OK");
 			std::string str =  _request.getTarget().substr(1);
 			_body = readFileContent(str);
-			std::cout << "CGI test/file\n";
-			std::cout << "-----target: " << str << std::endl;
-			
+			//std::cout << "CGI test/file\n";
+			//std::cout << "-----target: " << str << std::endl;
 		}
 			//file_handler(getRequestedResource(), method);
 	}
@@ -360,6 +367,7 @@ std::string Response::getResponseBuffer() const
 bool		Response::is_loc_has_redir()
 {
 	//check if the this->location has redirection
+	//std::cout << "This is the siiiiiiize: " << _location.get_return().size() << std::endl;
 	if (_location.get_return().size() > 0)
 		return true;
 	return false;
@@ -370,10 +378,12 @@ bool		Response::is_dir_has_index()
 {
 	//check if directory has index files
 	std::vector<std::string>::size_type    i = 0;
-	std::cout << "*****This is Location****" << _server.get_root_directive() << std::endl;
+	//std::cout << "*****This is Location****" << _server.get_root_directive() << std::endl;
+	//std::cout << "*****This is Location2****" << _location.get_root() << std::endl;
     if (_location.get_root() != "")
     {
         std::string path = _location.get_root();
+		_root = _location.get_root();
         std::ifstream file;
         if (_location.get_index().size() > 0)
         {
@@ -388,14 +398,19 @@ bool		Response::is_dir_has_index()
         }
         else
         {
+			path.append(_location.get_dir());
+			path.append("/");
             file.open(path.append("index.html").c_str()); //edited this
 			_index_file = path;
+			//std::cout << "The index: " << _index_file << std::endl;
             if (file.is_open())
                 return true;
+			//std::cout << "Can't open the file\n";
         }
     }
     else if (_server.get_root_directive() != "")
     {
+		_root = _server.get_root_directive();
         std::string path = _server.get_root_directive();//.append(_location.get_dir());
 		std::string newPath;
 		if (is_uri_has_slash(path))
@@ -413,8 +428,11 @@ bool		Response::is_dir_has_index()
 		}
 		else
 		{
-			std::cout << "holaaaaaaa\n";
-			std::cout << "lol" << _location.get_dir() << std::endl;
+			//std::cout << "holaaaaaaa\n";
+			//std::cout << "lol" << _location.get_dir() << std::endl;
+			if (_location.get_dir() != "")
+			{
+				
 			if (_location.get_dir().at(0) == '/')
 			{
 				newPath.append(path);
@@ -425,6 +443,7 @@ bool		Response::is_dir_has_index()
 				newPath.append(path);
 				newPath.append("/");
 				newPath.append(_location.get_dir());
+			}
 			}
 		}
 		if (!is_uri_has_slash(newPath))
@@ -440,7 +459,7 @@ bool		Response::is_dir_has_index()
 	else
 	{
 		setCodeMsg(500, "Internal Server Error");
-		_body = generateErrorPages(_code);
+		_body = generateErrorPages(_code, "Hasnaa");
 	}
     return false;
 
@@ -466,7 +485,7 @@ void		Response::DeleteMethod()
 	if (!isResourceExist())
 	{
 		setCodeMsg(404, "Not Found");
-		_body = generateErrorPages(_code);
+		_body = generateErrorPages(_code, "Hasnaa");
 		return ;
 	}
 	else
@@ -474,7 +493,7 @@ void		Response::DeleteMethod()
 		if (is_directory(getRequestedResource()))
 		{
 			setCodeMsg(403, "Forbidden");
-			_body = generateErrorPages(_code);
+			_body = generateErrorPages(_code, "Hasnaa");
 			return ;
 		}
 		else
@@ -487,13 +506,13 @@ void		Response::DeleteMethod()
 					if (access(dir, W_OK) == -1)
 					{
 						setCodeMsg(403, "Forbidden");
-						_body = generateErrorPages(_code);
+						_body = generateErrorPages(_code, "Hasnaa");
 						return ;
 					}
 					else
 					{
 						setCodeMsg(500, "Internal Server Error");
-						_body = generateErrorPages(_code);
+						_body = generateErrorPages(_code, "Hasnaa");
 						return ;
 					}
 				}
@@ -509,16 +528,17 @@ void		Response::DeleteMethod()
 	}
 }
 
-std::string	Response::generateErrorPages(int code)
+std::string	Response::generateErrorPages(int code, std::string name)
 {
 	std::string buffer;
 	std::stringstream ss;
 	ss << code;
 
 	buffer = "<!DOCTYPE html><html lang='en'><head><title>";
-	buffer.append(ss.str());
-	buffer.append(" ");
-	buffer.append(http_codes[code]);
+	// buffer.append(ss.str());
+	// buffer.append(" ");
+	// buffer.append(http_codes[code]);
+	buffer.append(name);
 	buffer.append("</title></head><body><center><h1>");
 	buffer.append(ss.str());
 	buffer.append(" ");
@@ -543,10 +563,6 @@ std::string	Response::generateErrorPages(int code)
 
 bool		Response::is_method_allowed()
 {
-	/**
-	 * if request.getMethod() exist in allowed methods by the server
-	 * 
-	 */
 	std::vector<std::string> allowed = _location.get_limitexcept();
 	if (allowed.size() == 0)
 		return true;
@@ -570,9 +586,11 @@ bool Response::isResourceExist()
 {
 	//check if the requested Resource exist in the root directory
     std::string filename = getRequestedResource();  // Name of the file to search for
+	//std::cout << "This is the file name: " << getRequestedResource() << std::endl;
     struct stat fileInfo;
 	if (stat(filename.c_str(), &fileInfo) == 0)
 		return true;
+	//std::cout << "it's a NO" << std::endl;
 	return false;
 }
 
@@ -623,8 +641,11 @@ std::string	Response::listDirContent()
     struct stat st;
 	std::stringstream ss;
 
-	std::string d = "../";
+	std::string d = _root;
+	//std::cout << "Here is The directory: " << this->_location.get_dir() << std::endl;
 	d.append(this->_location.get_dir());
+	// if (d == "/")
+	// 	d = _root;
 	dir = opendir(d.c_str());
 	htmlFile = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Index of ";
 	htmlFile.append(this->_location.get_dir());

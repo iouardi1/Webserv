@@ -4,7 +4,7 @@
 Request::Request() : chunk_size(0), current_length(0), request_data(std::string()),  index(0), current_pos(0), start_line_section(true), headers_section(false),
 body_section(false),  serv(ft::server()), flag(0), fileData(std::pair<std::string, size_t>()), method(std::string()),  target(std::string()), 
 http_version(std::string()),  header_fields(std::map<std::string, std::vector<std::string> >()),  chunk_size_line(true), 
-requestBody(std::string()), loc(ft::location()), matchedServ(false), request_end(false){}
+requestBody(std::string()), loc(ft::location()), matchedServ(false), request_end(false), body_length(0), errorCode(0){}
 
 Request::Request(Request const& x)
 {
@@ -28,6 +28,8 @@ Request::Request(Request const& x)
 	loc = x.getLoc();
 	matchedServ = x.getMatchedServ();
 	request_end = x.getRequestEnd();
+	body_length = x.getBodyLength();
+	errorCode = x.getErrorCode();
 }
 
 Request& Request::operator=(Request const& x)
@@ -50,8 +52,20 @@ Request& Request::operator=(Request const& x)
 	loc = x.getLoc();
 	matchedServ = x.getMatchedServ();
 	request_end = x.getRequestEnd();
+	body_length = x.getBodyLength();
+	errorCode = x.getErrorCode();
 
 	return (*this);
+}
+
+int 	Request::getErrorCode() const
+{
+	return (errorCode);
+}
+
+size_t	Request::getBodyLength() const
+{
+	return (body_length);
 }
 
 bool	Request::getRequestEnd() const
@@ -307,11 +321,14 @@ void	Request::setRequestLine(std::string line)
 
 	tokens = get_tokens(line, " ");
 	if (tokens.size() != 3)
-		throw (400);
- 
+	{
+		errorCode = 400;
+		return;
+	}
+		
 	for (std::vector<std::string>::size_type i = 0; i < tokens.size(); i++)
 		(this->*f1[i])(tokens[i]);
-	}
+}
 
 void  Request::setHeaderLine(std::string line)
 {
@@ -322,7 +339,11 @@ void  Request::setHeaderLine(std::string line)
 
   //throw_Errors_here
 	if (tokens.size() < 2)
-		throw (400);
+	{
+		errorCode = 400;
+		return;		
+	}
+		
 
 	for (std::vector<std::string>::size_type i = 1; i < tokens.size(); i++)
 		val.push_back(tokens[i]);
@@ -435,7 +456,11 @@ void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> >
 	{
 
 		if (header_fields.find("Host:") == header_fields.end())
-			throw (400);
+		{
+			errorCode = 400;
+			return;			
+		}
+			
 		
 		std::string toMatch;
 		std::string hostValue;
@@ -492,16 +517,49 @@ void	Request::checkRequestErrors()
 	if (method == "POST" && header_fields.find("Content-Length:") == header_fields.end()
 		&& header_fields.find("Transfer-Encoding:") == header_fields.end())
 	{
-		throw(400);
+		errorCode = 400;
+		return;		
+		
 	}
 
-	if (header_fields.find("Transfer-Encoding:") != header_fields.end()
+	if ( (header_fields.find("Transfer-Encoding:") != header_fields.end()
+	&& header_fields.find("Transfer-Encoding:")->second.size() > 1 )|| 
+	(header_fields.find("Transfer-Encoding:") != header_fields.end()
 	&& header_fields.find("Transfer-Encoding:")->second.size()
-	&& header_fields.find("Transfer-Encoding:")->second.size() != 1
-	&& header_fields.find("Transfer-Encoding:")->second[0] != "chunked")
+	&& header_fields.find("Transfer-Encoding:")->second[0] != "chunked" ))
 	{
-		throw(501);
+		errorCode = 501;
+		return;		
+		
 	}
+}
+
+void	Request::checkUriErrors()
+{
+	std::string	uri = target;
+	std::string	allowedUriContent("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.~:/?#[]@!$&'()+,;=%");
+
+	/*********[check uri len]**********/
+
+	if (uri.size() > 2048)
+	{
+		errorCode = 414;
+		return;		
+	}
+		
+
+	/*********[check uri characters]**********/
+
+	for (std::string::size_type i = 0; i < uri.size(); i++)
+	{
+		if (allowedUriContent.find(uri[i], 0) == std::string::npos)
+		{
+			errorCode = 400;
+			return;
+		}
+			
+	}
+
 }
 
 int		Request::hexToDecHelper(char c)
@@ -540,10 +598,22 @@ size_t	Request::hexToDec(std::string s)
 	return (len);
 }
 
+void	Request::CheckBodyMaxSize()
+{
+	size_t maxSizeAllowed = std::atoi(serv.get_max_body_size_directive().c_str());
+	if (body_length > maxSizeAllowed)
+	{
+		errorCode = 413;
+		return;		
+	}
+		
+}
+
 void	Request::transferEncodingChunked()
 {
 	if (chunk_size_line)
 	{
+		current_length = 0;
 		std::string line = request_data.substr(current_pos, index - current_pos) + ";";
 		std::vector<std::string> tokens = get_tokens(line, ";");
 		if (tokens.size())
@@ -564,7 +634,13 @@ void	Request::transferEncodingChunked()
 		current_length += request_data.substr(current_pos, index - current_pos).size();
 		current_pos = index + 2;
 		if (current_length == chunk_size)
-			chunk_size_line = true;                
+		{
+			chunk_size_line = true;       
+			body_length += current_length;
+			CheckBodyMaxSize();
+			if (errorCase())
+				return ;
+		}         
 	}
 }
 
@@ -584,10 +660,13 @@ void	Request::CheckBody()
 void	Request::ContentLengthCase()
 {
 	requestBody.append(request_data.substr(current_pos, index - current_pos));
-	current_length += request_data.substr(current_pos, index - current_pos).size();
+	body_length += request_data.substr(current_pos, index - current_pos).size();
+	CheckBodyMaxSize();
+	if (errorCase())
+		return ;
 	current_pos = index + 2;
 	if (header_fields.find("Content-Length:")->second.size()
-	&& current_length == (unsigned long)(std::atoi(header_fields.find("Content-Length:")->second[0].c_str())) )
+	&& body_length == (unsigned long)(std::atoi(header_fields.find("Content-Length:")->second[0].c_str())) )
 	{
 		body_section = false;  	
 		request_end = true;
@@ -597,15 +676,21 @@ void	Request::ContentLengthCase()
 bool 			Request::parse(int socket, std::string s, std::map<int, std::vector<ft::server> > m)
 {
 	request_data.append(s);
-    while (find_line(request_data, current_pos))
+	errorCode = 0;
+    while (find_line(request_data, current_pos) && !request_end)
     {
+		std::cout << "\nHEEEEEERE" << std::endl;
         if (start_line_section)
         {
 			setRequestLine(request_data.substr(current_pos, index - current_pos));
+			if (errorCase())
+				return (true);
 			start_line_section = false;
 			headers_section = true;
 			current_pos = index + 2; 
-			
+			checkUriErrors();
+			if (errorCase())
+				return (true);
         }
         if (headers_section)
         {
@@ -615,13 +700,23 @@ bool 			Request::parse(int socket, std::string s, std::map<int, std::vector<ft::
 			{
 				headers_section = false;
 				checkRequestErrors();
+				if (errorCase())
+					return (true);
 				serverMatching(socket, m);
+				if (errorCase())
+					return (true);
 				locationMatching();
+				if (errorCase())
+					return (true);
 				CheckBody();	
 				
 			}
 			else
+			{
 				setHeaderLine(request_data.substr(current_pos, index - current_pos));
+				if (errorCase())
+					return (true);
+			}
 
 			current_pos = index + 2;           
         }
@@ -630,10 +725,14 @@ bool 			Request::parse(int socket, std::string s, std::map<int, std::vector<ft::
 			if (header_fields.find("Transfer-Encoding:") != header_fields.end())
 			{
 				transferEncodingChunked();
+				if (errorCase())
+					return (true);
 			}
 			else if (header_fields.find("Content-Length:") != header_fields.end())
 			{
 				ContentLengthCase();
+				if (errorCase())
+					return (true);
 			}
 
         }
@@ -657,13 +756,15 @@ void	Request::locationMatching()
 		}
 	}
 
-			// std::cout << "\033[1;36mEEEEEEE: \033[0m" << uri << std::endl;
+			// //std::cout << "\033[1;36mEEEEEEE: \033[0m" << uri << std::endl;
 	while ((pos = uri.rfind("/", pos)) != std::string::npos )
 	{
 		uri = uri.substr(0, pos);
 		if (uri.empty())
 		{
-			throw (404);
+			errorCode = 404;
+			return;			
+			
 		}
 		for (size_t i = 0; i < serv.get_location().size(); i++)
 		{
@@ -677,6 +778,21 @@ void	Request::locationMatching()
 		pos = 0;	
 	}
 	
+}
+
+void	Request::setRequestEnd(bool x)
+{
+	request_end = x;
+}
+
+bool	Request::errorCase()
+{
+	if (errorCode != 0)
+	{
+		request_end = true;
+		return (true);
+	}
+	return (false);
 }
 
 Request::~Request() {}

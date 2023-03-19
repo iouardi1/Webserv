@@ -1,4 +1,3 @@
-
 #include "location.hpp"
 
 ft::location::location() : dir_directive(std::string()), root_directive(std::string()), index_directive(std::vector<std::string>()), return_directive(std::vector<std::string>()),
