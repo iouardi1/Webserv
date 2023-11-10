@@ -1,4 +1,3 @@
-
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
@@ -6,6 +5,9 @@
 #include <cstdlib>
 #include <map>
 #include <math.h>
+#include <sstream>
+#include <time.h> 
+#include <sys/stat.h>
 
 class Request
 {
@@ -33,6 +35,12 @@ class Request
 		bool													request_end;
 		size_t													body_length;
 		int 													errorCode;
+		std::string												_bodyFile;
+		bool													chunkedBody;
+		bool													unchunkedBody;
+		bool													FirstSection;
+		size_t 													i_index;
+		
 	
 	public:
 
@@ -67,6 +75,14 @@ class Request
 		bool												getRequestEnd() const;
 		size_t												getBodyLength() const;
 		int 												getErrorCode() const;
+		std::string											get_bodyFile() const;
+		bool												getChunkedBody() const;
+		bool												getUnchunkedBody() const;
+		bool												getFirstSection() const;
+		size_t												getI_index() const;
+		
+		
+
 
 	/********************************************************/
 
@@ -77,6 +93,8 @@ class Request
 		void	setHttpVersion(std::string x);
 		void	setHeaderFields(std::pair<std::string, std::vector<std::string> > value);
 		void	setRequestEnd(bool x);
+		void	setChunkedBody(bool x) ;
+		void	setUnchunkedBody(bool x) ;
 
 	/********************************************************/
 
@@ -88,9 +106,9 @@ class Request
 		void						serverMatching(int socket, std::map<int, std::vector<ft::server> > 	socket_servers);
 		std::string					generate_file_name();
 		std::vector<std::string>	get_tokens(std::string line, std::string delimiter);
-		bool						find_line(std::string s, size_t current_pos);
+		bool						find_line(std::string s, size_t current_pos, std::string &line);
 		void						checkRequestErrors();
-		void						transferEncodingChunked();
+		void						transferEncodingChunked(std::string s1);
 		void						ContentLengthCase();
 		void						CheckBody();
 		size_t						hexToDec(std::string s);
@@ -99,6 +117,16 @@ class Request
 		void						checkUriErrors();
 		void						CheckBodyMaxSize();
 		bool						errorCase();
+		std::string					getBodyFileExtension();
+		bool 						isResourceExist(std::string s);
+		std::string					getStrToAdd();
+		bool						isHexChar(char c);
+		bool						isHexStr(std::string s);
+		void 						transferEncodingChunked2();
+		std::string					extractQuerieString();
+		void						extractContentLen(size_t &len);
+		void 						CheckBodyMaxSizee(size_t ln);
+
 		
 
 

@@ -6,7 +6,7 @@
 /*   By: het-tale <het-tale@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/13 22:32:24 by iouardi           #+#    #+#             */
-/*   Updated: 2023/03/19 15:33:17 by het-tale         ###   ########.fr       */
+/*   Updated: 2023/04/01 00:29:43 by het-tale         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,10 @@ class   client
 	private:
 		int                         								socket_server;
 		std::vector<std::pair<std::pair<int, bool>, Request> >		socket_responses;
-		std::string resp_message;
-		int	flag;
+		std::string 												resp_message;
+		int															flag;
+		std::map<int, size_t>										itr_map;
+		std::string	buffer;
 
 	public:
 		client();
@@ -44,6 +46,8 @@ class   client
 		bool	setRequestEnd_(bool x, int index);
 		void	set_resp_message(std::string msg);
 		void	setFlag(int flag);
+		void 	set_itr_map(int);
+		void	setBuffer(std::string b);
 		// bool	parse_request(std::string s, std::map<int, std::vector<ft::server> > m);
 
 	
@@ -53,11 +57,13 @@ class   client
 		bool													parse_request(std::string s, std::map<int, std::vector<ft::server> > m, int index);
 		bool    												get_sock_flag(int index) const;
 		std::string												get_resp_message() const;
-		int	getFlag() const;
+		int														getFlag() const;
+		std::map<int, size_t>										get_itr_map() const;
+		std::string												getBuffer() const;
 
 
 		//* utiles
-		void    remove_sock(int index);
+		void    remove_sock(int index, int sock);
 };
 
 

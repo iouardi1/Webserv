@@ -18,13 +18,15 @@ namespace ft
 			std::string						alias_directive;
 			std::string						autoindex_directive;
 			std::vector<std::string>		limit_except_directive;
+			std::string						cgi_directive;
+
 		public:
 		location();
 		location(location const& other);
 		location& operator=(location const& other);
 		~location();
 
-
+		std::string	get_cgi() const;
 		std::string get_dir() const;
 		std::string get_root() const;
 		std::string get_alias() const;
@@ -34,7 +36,7 @@ namespace ft
 		std::vector<std::string> get_return() const;
 
 
-
+		void	set_cgi(std::string x);
 		void	set_dir(std::string x);
 		void	set_root(std::string x);
 		void	set_index(std::vector<std::string> x);
@@ -43,6 +45,7 @@ namespace ft
 		void	set_autoindex(std::string	 x);
 		void	set_limitexcept(std::vector<std::string> x);
 		void	setter(std::string dir, std::string value, std::vector<std::string> v);
+		void	checkLocationValidity();
 
 	};
 }

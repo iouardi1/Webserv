@@ -1,12 +1,13 @@
 #include "Request.hpp"
-# include <fstream>
+#include <fstream>
 
-Request::Request() : chunk_size(0), current_length(0), request_data(std::string()),  index(0), current_pos(0), start_line_section(true), headers_section(false),
-body_section(false),  serv(ft::server()), flag(0), fileData(std::pair<std::string, size_t>()), method(std::string()),  target(std::string()), 
-http_version(std::string()),  header_fields(std::map<std::string, std::vector<std::string> >()),  chunk_size_line(true), 
-requestBody(std::string()), loc(ft::location()), matchedServ(false), request_end(false), body_length(0), errorCode(0){}
+Request::Request() : chunk_size(1), current_length(0), request_data(std::string()), index(0), current_pos(0), start_line_section(true), headers_section(false),
+					 body_section(false), serv(ft::server()), flag(0), fileData(std::pair<std::string, size_t>()), method(std::string()), target(std::string()),
+					 http_version(std::string()), header_fields(std::map<std::string, std::vector<std::string> >()), chunk_size_line(true),
+					 requestBody(std::string()), loc(ft::location()), matchedServ(false), request_end(false), 
+					 body_length(0), errorCode(0), _bodyFile(std::string()), chunkedBody(false), unchunkedBody(false), FirstSection(true), i_index(0) {}
 
-Request::Request(Request const& x)
+Request::Request(Request const &x)
 {
 	chunk_size = x.getChunkSize();
 	current_length = x.getCurrentLength();
@@ -30,10 +31,15 @@ Request::Request(Request const& x)
 	request_end = x.getRequestEnd();
 	body_length = x.getBodyLength();
 	errorCode = x.getErrorCode();
+	_bodyFile = x.get_bodyFile();
+	chunkedBody = x.getChunkedBody();
+	unchunkedBody = x.getUnchunkedBody();
+	FirstSection = x.getFirstSection();
+	i_index = x.getI_index();
 }
 
-Request& Request::operator=(Request const& x)
-{	
+Request &Request::operator=(Request const &x)
+{
 	request_data = x.getRequestData();
 	index = x.getIndex();
 	current_pos = x.getCurrentPos();
@@ -54,101 +60,141 @@ Request& Request::operator=(Request const& x)
 	request_end = x.getRequestEnd();
 	body_length = x.getBodyLength();
 	errorCode = x.getErrorCode();
+	_bodyFile = x.get_bodyFile();
+	chunkedBody = x.getChunkedBody();
+	unchunkedBody = x.getUnchunkedBody();
+	FirstSection = x.getFirstSection();
+	i_index = x.getI_index();
 
 	return (*this);
 }
 
-int 	Request::getErrorCode() const
+size_t	Request::getI_index() const
+{
+	return (i_index);
+}
+
+bool	Request::getFirstSection() const
+{
+	return (FirstSection);
+}
+
+void Request::setChunkedBody(bool x)
+{
+	chunkedBody = x;
+}
+
+void Request::setUnchunkedBody(bool x)
+{
+	unchunkedBody = x;
+}
+
+bool Request::getChunkedBody() const
+{
+	return (chunkedBody);
+}
+
+bool Request::getUnchunkedBody() const
+{
+	return (unchunkedBody);
+}
+
+std::string Request::get_bodyFile() const
+{
+	return (_bodyFile);
+}
+
+int Request::getErrorCode() const
 {
 	return (errorCode);
 }
 
-size_t	Request::getBodyLength() const
+size_t Request::getBodyLength() const
 {
 	return (body_length);
 }
 
-bool	Request::getRequestEnd() const
+bool Request::getRequestEnd() const
 {
 	return (request_end);
 }
 
-bool	Request::getMatchedServ() const
+bool Request::getMatchedServ() const
 {
 	return (matchedServ);
 }
 
-void	Request::setLoc(ft::location x)
+void Request::setLoc(ft::location x)
 {
 	loc = x;
 }
 
-ft::location	Request::getLoc() const{
+ft::location Request::getLoc() const
+{
 	return (loc);
 }
 
-size_t	Request::getChunkSize() const
+size_t Request::getChunkSize() const
 {
 	return (chunk_size);
 }
 
-
-size_t	Request::getCurrentLength() const
+size_t Request::getCurrentLength() const
 {
 	return (current_length);
 }
 
-bool 	Request::getChunkSizeLine() const
+bool Request::getChunkSizeLine() const
 {
 	return (chunk_size_line);
 }
 
-size_t	Request::getCurrentPos() const
+size_t Request::getCurrentPos() const
 {
 	return (current_pos);
 }
 
-size_t	Request::getIndex() const
+size_t Request::getIndex() const
 {
 	return (index);
 }
 
-std::string	Request::getRequestData() const
+std::string Request::getRequestData() const
 {
 	return (request_data);
 }
 
-bool	Request::getStartLineSection() const
+bool Request::getStartLineSection() const
 {
 	return (start_line_section);
 }
 
-bool	Request::getHeadersSection() const
+bool Request::getHeadersSection() const
 {
 	return (headers_section);
 }
 
-bool	Request::getBodySection() const
+bool Request::getBodySection() const
 {
 	return (body_section);
 }
 
-int	Request::getflag() const
+int Request::getflag() const
 {
 	return (flag);
 }
 
-std::pair<std::string, size_t> 	Request::getFileData() const
+std::pair<std::string, size_t> Request::getFileData() const
 {
 	return (fileData);
 }
 
-std::map<std::string, std::vector<std::string> >	Request::getHeaderFields() const
+std::map<std::string, std::vector<std::string> > Request::getHeaderFields() const
 {
 	return (header_fields);
 }
 
-std::string	Request::getMethod() const
+std::string Request::getMethod() const
 {
 	return (method);
 }
@@ -158,165 +204,78 @@ std::string Request::getTarget() const
 	return (target);
 }
 
-std::string	Request::getHttpVersion() const
+std::string Request::getHttpVersion() const
 {
 	return (http_version);
 }
 
-void	Request::setMethod(std::string x)
+void Request::setMethod(std::string x)
 {
-	
+
 	method = x;
 }
 
-void	Request::setTarget(std::string x)
+void Request::setTarget(std::string x)
 {
 	target = x;
 }
 
-void	Request::setHttpVersion(std::string x)
+void Request::setHttpVersion(std::string x)
 {
 	http_version = x;
 }
 
-std::string		Request::getRequestBody() const
+std::string Request::getRequestBody() const
 {
 	return (requestBody);
 }
 
-void  Request::setHeaderFields(std::pair<std::string, std::vector<std::string> > value)
+void Request::setHeaderFields(std::pair<std::string, std::vector<std::string> > value)
 {
-	header_fields.insert(value);
+	if (value.first == "Cookie:" && header_fields.find("Cookie:") != header_fields.end())
+	{
+		for (size_t i = 0; i < value.second.size(); i++)
+			header_fields.find("Cookie:")->second.push_back(value.second[i]);
+	}
+	else
+		header_fields.insert(value);
 }
 
-ft::server  Request::getServer() const
+ft::server Request::getServer() const
 {
 	return (serv);
 }
 
-void	Request::setServer(ft::server s)
+void Request::setServer(ft::server s)
 {
 	serv = s;
 }
 
-std::vector<std::string>    Request::get_tokens(std::string line, std::string delimiter)
+std::vector<std::string> Request::get_tokens(std::string line, std::string delimiter)
 {
-  size_t                      _start = 0;
-  size_t                      _end = 0;
-  std::string                 token;
-  std::vector<std::string>    tokens;
+	size_t _start = 0;
+	size_t _end = 0;
+	std::string token;
+	std::vector<std::string> tokens;
 
-  if (delimiter == " ")
-    line.push_back(delimiter[0]);
-  while ((_end = line.find(delimiter, _start))!= std::string::npos)
-  {
-    token = line.substr(_start, _end - _start);
-      _start = _end + delimiter.size();
-    if (!token.empty())
-      tokens.push_back(token);
-  }
+	if (delimiter == " ")
+		line.push_back(delimiter[0]);
+	while ((_end = line.find(delimiter, _start)) != std::string::npos)
+	{
+		token = line.substr(_start, _end - _start);
+		_start = _end + delimiter.size();
+		if (!token.empty())
+			tokens.push_back(token);
+	}
 
-  return (tokens);
+	return (tokens);
 }
 
-// void	Request::serverMatching(std::vector<ft::server> virtual_servers)
-// {
-// 	std::vector<ft::server> matched_servers;
-// 	std::vector<ft::server> final_matched_servers;
-// 	std::vector<std::string> tokens;
-// 	std::vector<std::string> _tokens;
-// 	std::string hostValue;
-// 	std::string	port;
-// 	std::string	ip_address;
-// 	std::string	domain_name;
-
-// 	if (header_fields.find("Host:") == header_fields.end())
-// 		throw (std::invalid_argument("400 Bad Request"));
-// 	hostValue = header_fields.find("Host:")->second + ":";
-// 	tokens = get_tokens(hostValue, ":");
-// 	if (tokens.size())
-// 	{
-// 		/***************[set Port]***************/
-// 		if (tokens.size() == 1)
-// 			port = "80";
-// 		else if (tokens.size() == 2)
-// 			port = tokens[1];
-// 		/***************[check if i have ip_address or a domain name]***************/
-// 		_tokens = get_tokens(tokens[0] + ".", ".");
-// 		if (_tokens.size() == 4 && _tokens[0].size() == 3 && _tokens[1].size() == 3
-// 			&& _tokens[2].size() == 3 && _tokens[3].size() == 3)
-// 		{
-// 			ip_address = tokens[0];
-// 		}
-// 		else
-// 			domain_name = tokens[0];
-// 		/***************[ip_address case]***************/
-// 		if (!ip_address.empty())
-// 		{
-// 			/***************[first : match by ip_address]***************/
-// 			for (std::vector<ft::server>::size_type i = 0; i < virtual_servers.size(); i++)
-// 			{
-// 				if ( ((virtual_servers[i].getPortAndIpAddress()).first).empty() 
-// 					|| ((virtual_servers[i].getPortAndIpAddress()).first) == ip_address )
-// 				{
-// 					matched_servers.push_back(virtual_servers[i]);
-// 				}
-// 			}
-// 			/***************[second : match by port]***************/
-// 			for (std::vector<ft::server>::size_type i = 0; i < matched_servers.size(); i++)
-// 			{
-// 				if ( !((matched_servers[i].getPortAndIpAddress()).second).empty() 
-// 					&& ((matched_servers[i].getPortAndIpAddress()).second) == port )
-// 				{
-// 					final_matched_servers.push_back(matched_servers[i]);
-// 				}
-// 			}
-// 			/***************[last: set server]***************/
-// 			if (final_matched_servers.size())
-// 				serv = final_matched_servers[0];
-
-// 		}	/***************[domain_name case]***************/
-// 		else if (!domain_name.empty())
-// 		{
-// 			/***************[first : match by port]***************/
-// 			for (std::vector<ft::server>::size_type i = 0; i < virtual_servers.size(); i++)
-// 			{
-// 				if ( !((virtual_servers[i].getPortAndIpAddress()).second).empty() 
-// 					&& ((virtual_servers[i].getPortAndIpAddress()).second) == port )
-// 				{
-// 					matched_servers.push_back(virtual_servers[i]);
-// 				}
-// 			}	
-// 			/***************[second : match by server_name]***************/		
-// 			for (std::vector<ft::server>::size_type i = 0; i < matched_servers.size(); i++)
-// 			{
-// 				for (std::vector<std::string>::size_type y = 0; i < matched_servers[i].get_server_name_directive().size(); y++)
-// 				{
-// 					if ((matched_servers[i].get_server_name_directive())[y] == domain_name)
-// 					{
-// 						final_matched_servers.push_back(matched_servers[i]);
-// 						break;
-// 					}
-// 				}
-// 			}
-// 			/***************[last: set server]***************/
-// 			if (final_matched_servers.size())
-// 				serv = final_matched_servers[0];
-// 			else if (matched_servers.size())
-// 				serv = matched_servers[0];
-
-// 		}
-
-// 	}
-	
-// }
-
-
-void	Request::setRequestLine(std::string line)
+void Request::setRequestLine(std::string line)
 {
-	
+
 	std::vector<std::string> tokens;
-	std::string              attributes[3] = {"method", "target", "http_version"};
+	std::string attributes[3] = {"method", "target", "http_version"};
 	void (Request::*f1[3])(std::string) = {&Request::setMethod, &Request::setTarget, &Request::setHttpVersion};
 
 	tokens = get_tokens(line, " ");
@@ -325,132 +284,33 @@ void	Request::setRequestLine(std::string line)
 		errorCode = 400;
 		return;
 	}
-		
+
 	for (std::vector<std::string>::size_type i = 0; i < tokens.size(); i++)
 		(this->*f1[i])(tokens[i]);
 }
 
-void  Request::setHeaderLine(std::string line)
+void Request::setHeaderLine(std::string line)
 {
 	std::vector<std::string> tokens;
 	std::vector<std::string> val;
 
 	tokens = get_tokens(line, " ");
 
-  //throw_Errors_here
+	// throw_Errors_here
 	if (tokens.size() < 2)
 	{
 		errorCode = 400;
-		return;		
+		return;
 	}
-		
 
 	for (std::vector<std::string>::size_type i = 1; i < tokens.size(); i++)
 		val.push_back(tokens[i]);
 
 	setHeaderFields(std::make_pair(tokens[0], val));
-	
 }
 
-std::string		Request::generate_file_name()
-{	
-	// int r = 0;
 
-	// srand((int) time(0));
-	// r = rand();
-	return ("name.txt" );
-}
-
-// void Request::parse(std::string s)
-// {
-// 	std::vector<std::string> parts;
-// 	std::vector<std::string> lines;
-// 	std::string				fileName;
-// 	std::ofstream 			body_file;
-	
-
-// 	if (flag == 0)
-// 	{
-// 		s.push_back('\r');
-// 		s.push_back('\n');
-// 		parts = get_tokens(s, "\r\n\r\n");
-
-// 		if (parts.size())
-// 		{
-// 			flag++;
-// 			parts[0].push_back('\r');
-// 			parts[0].push_back('\n');
-// 			lines = get_tokens(parts[0], "\r\n");
-// 			if (lines.size())
-// 			{
-// 				setRequestLine(lines[0]);
-// 				for(std::vector<std::string>::size_type i = 1; i < lines.size(); i++)
-// 					setHeaderLine(lines[i]);
-// 			}
-			
-// 		}
-
-// 		if (method == "POST" && header_fields.find("Content-Length:") == header_fields.end() && header_fields.find("Transfer-Encoding:") == header_fields.end())
-// 			throw(std::invalid_argument("400 Bad Request"));
-// 		if (header_fields.find("Content-Length:") == header_fields.end() && header_fields.find("Transfer-Encoding:") == header_fields.end())
-// 			return ;
-// 		if(header_fields.find("Content-Length:") != header_fields.end() && parts.size() == 2)
-// 		{
-// 			fileName = generate_file_name();
-// 			// std::ofstream 			body_file(fileName, std::ofstream::app);
-// 			body_file.open(fileName, std::fstream::out | std::fstream::app);
-			
-// 			body_file << parts[1];
-// 			body_file.close();
-
-// 			// if (header_fields.find("Content-Length:")->second.size())
-// 			// fileData = std::make_pair(fileName,header_fields.find("Content-Length:")->second[0] ); // error_heeere
-// 		}
-// 		if (header_fields.find("Transfer-Encoding:") != header_fields.end() && header_fields.find("Transfer-Encoding:")->second.size() != 1 && header_fields.find("Transfer-Encoding:")->second[0] != "chunked")
-// 		{
-// 			//throw exception!!!!!!!!
-// 		}
-// 		if(header_fields.find("Transfer-Encoding:") != header_fields.end() && parts.size() == 2)
-// 		{	
-// 			parts[1].push_back('\r');
-// 			parts[1].push_back('\n');
-// 			lines = get_tokens(parts[1], "\r\n");
-// 			fileName = generate_file_name();
-// 			body_file.open(fileName, std::fstream::out | std::fstream::app);
-
-// 			// if (lines.size())
-// 			// 	set_file_size(lines[0]);
-			
-			
-// 			for (std::vector<std::string>::size_type i = 1; i < lines.size(); i++)
-// 				body_file << lines[i] << "\r\n";
-// 			body_file.close();
-
-
-// 		}
-// 	}
-// 	if (flag > 0)
-// 	{
-// 		std::vector<std::string>::size_type i1 = 0;
-
-// 		if (header_fields.find("Transfer-Encoding:") != header_fields.end())
-// 		{
-// 			lines = get_tokens(s, "\r\n");
-// 			// if (lines.size())
-// 			// 	set_file_size(lines[0]);
-// 			i1 = 1;
-// 		}
-
-	
-// 		body_file.open(fileName, std::fstream::out | std::fstream::app);
-// 		for (std::vector<std::string>::size_type i = i1; i < lines.size(); i++)
-// 			body_file << lines[i] << "\r\n";
-// 		body_file.close();
-// 	}
-
-// }
-
-void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> > socket_servers)
+void Request::serverMatching(int socket, std::map<int, std::vector<ft::server> > socket_servers)
 {
 	if (!matchedServ)
 	{
@@ -458,13 +318,12 @@ void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> >
 		if (header_fields.find("Host:") == header_fields.end())
 		{
 			errorCode = 400;
-			return;			
+			return;
 		}
-			
-		
+
 		std::string toMatch;
 		std::string hostValue;
-		bool 		matched  = false;
+		bool matched = false;
 
 		if (header_fields.find("Host:")->second.size())
 			hostValue = header_fields.find("Host:")->second[0] + ":";
@@ -476,7 +335,7 @@ void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> >
 
 		if (It != socket_servers.end())
 		{
-			for (std::vector<ft::server>::size_type	i = 0; i < (It->second).size(); i++)
+			for (std::vector<ft::server>::size_type i = 0; i < (It->second).size(); i++)
 			{
 				for (std::vector<std::string>::size_type y = 0; y < (It->second)[i].get_server_name_directive().size(); y++)
 				{
@@ -489,7 +348,6 @@ void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> >
 				}
 				if (matched)
 					break;
-				
 			}
 			if (!matched && It->second.size())
 				serv = It->second[0];
@@ -498,55 +356,52 @@ void	Request::serverMatching(int socket, std::map<int, std::vector<ft::server> >
 	}
 }
 
-bool		Request::find_line(std::string s, size_t current_pos)
+bool Request::find_line(std::string s, size_t current_pos, std::string &line)
 {
-	size_t i = 0;
 
+	size_t i = 0;
 	if ((i = s.find("\r\n", current_pos)) != std::string::npos)
 	{
+		
 		index = i;
+		
+		line = s.substr(current_pos, i - current_pos);
+				
+		request_data = s.substr(i + 2, s.size() - (i + 2));
+		
 		return (true);
 	}
 	return (false);
 }
 
-
-
-void	Request::checkRequestErrors()
+void Request::checkRequestErrors()
 {
-	if (method == "POST" && header_fields.find("Content-Length:") == header_fields.end()
-		&& header_fields.find("Transfer-Encoding:") == header_fields.end())
+	if (method == "POST" && header_fields.find("Content-Length:") == header_fields.end() && header_fields.find("Transfer-Encoding:") == header_fields.end())
 	{
 		errorCode = 400;
-		return;		
-		
+		return;
 	}
 
-	if ( (header_fields.find("Transfer-Encoding:") != header_fields.end()
-	&& header_fields.find("Transfer-Encoding:")->second.size() > 1 )|| 
-	(header_fields.find("Transfer-Encoding:") != header_fields.end()
-	&& header_fields.find("Transfer-Encoding:")->second.size()
-	&& header_fields.find("Transfer-Encoding:")->second[0] != "chunked" ))
+	if ((header_fields.find("Transfer-Encoding:") != header_fields.end() && header_fields.find("Transfer-Encoding:")->second.size() > 1) ||
+		(header_fields.find("Transfer-Encoding:") != header_fields.end() && header_fields.find("Transfer-Encoding:")->second.size() && header_fields.find("Transfer-Encoding:")->second[0] != "chunked"))
 	{
 		errorCode = 501;
-		return;		
-		
+		return;
 	}
 }
 
-void	Request::checkUriErrors()
+void Request::checkUriErrors()
 {
-	std::string	uri = target;
-	std::string	allowedUriContent("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.~:/?#[]@!$&'()+,;=%");
+	std::string uri = target;
+	std::string allowedUriContent("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%");
 
 	/*********[check uri len]**********/
 
 	if (uri.size() > 2048)
 	{
 		errorCode = 414;
-		return;		
+		return;
 	}
-		
 
 	/*********[check uri characters]**********/
 
@@ -557,35 +412,63 @@ void	Request::checkUriErrors()
 			errorCode = 400;
 			return;
 		}
-			
 	}
-
 }
 
-int		Request::hexToDecHelper(char c)
+bool Request::isHexStr(std::string s)
 {
-	std::string	str1("0123456789abcdef");
-	std::string	str2("0123456789ABCDEF");
+	for (std::string::size_type i = 0; i < s.size(); i++)
+	{
+		if (!isHexChar(s[i]))
+			return (false);
+	}
+	return (true);
+}
+
+bool Request::isHexChar(char c)
+{
+	std::string str1("0123456789abcdef");
+	std::string str2("0123456789ABCDEF");
 
 	for (std::string::size_type i = 0; i < str1.size(); i++)
 	{
 		if (c == str1[i])
-			return (i + 1);
+			return (true);
 	}
 
 	for (std::string::size_type i = 0; i < str2.size(); i++)
 	{
 		if (c == str2[i])
-			return (i + 1);
+			return (true);
+	}
+	return (false);
+}
+
+int Request::hexToDecHelper(char c)
+{
+	std::string str1("0123456789abcdef");
+	std::string str2("0123456789ABCDEF");
+
+	for (std::string::size_type i = 0; i < str1.size(); i++)
+	{
+		if (c == str1[i])
+			return (i);
+	}
+
+	for (std::string::size_type i = 0; i < str2.size(); i++)
+	{
+		if (c == str2[i])
+			return (i);
 	}
 	return (0);
 }
 
-size_t	Request::hexToDec(std::string s)
+size_t Request::hexToDec(std::string s)
 {
-	size_t	len = 0;
-	size_t	j = 0;
-	int	i = s.size(); //edited this
+	// std::cerr  << "////•> " << "1 <=> "<< s <<" <•////" ;
+	size_t len = 0;
+	size_t j = 0;
+	int i = s.size(); // edited this
 
 	if (i)
 		i--;
@@ -595,26 +478,44 @@ size_t	Request::hexToDec(std::string s)
 		j++;
 		i--;
 	}
+	// std::cerr  << "////•> " << "2 <=>"<< s <<" <•////" ;
 	return (len);
 }
 
-void	Request::CheckBodyMaxSize()
+void Request::CheckBodyMaxSize()
 {
-	size_t maxSizeAllowed = std::atoi(serv.get_max_body_size_directive().c_str());
-	if (body_length > maxSizeAllowed)
+	if (!serv.get_max_body_size_directive().empty())
 	{
-		errorCode = 413;
-		return;		
+		size_t maxSizeAllowed = std::atoi(serv.get_max_body_size_directive().c_str());
+		if (body_length > maxSizeAllowed)
+		{
+			errorCode = 413;
+			return;
+		}
 	}
-		
 }
 
-void	Request::transferEncodingChunked()
+void Request::CheckBodyMaxSizee(size_t ln)
 {
+	if (!serv.get_max_body_size_directive().empty())
+	{
+		size_t maxSizeAllowed = std::atoi(serv.get_max_body_size_directive().c_str());
+		if (body_length + ln > maxSizeAllowed)
+		{
+			errorCode = 413;
+			return;
+		}
+	}
+}
+
+void Request::transferEncodingChunked(std::string s1)
+{
+
 	if (chunk_size_line)
 	{
+		
 		current_length = 0;
-		std::string line = request_data.substr(current_pos, index - current_pos) + ";";
+		std::string line = s1 + ";";
 		std::vector<std::string> tokens = get_tokens(line, ";");
 		if (tokens.size())
 		{
@@ -622,170 +523,428 @@ void	Request::transferEncodingChunked()
 		}
 		if (chunk_size == 0)
 		{
+			
 			body_section = false;
 			request_end = true;
-		}	
+			chunkedBody = false;
+		}
 		chunk_size_line = false;
-		current_pos = index + 2;                
+
 	}
 	else
 	{
-		requestBody.append(request_data.substr(current_pos, index - current_pos));
-		current_length += request_data.substr(current_pos, index - current_pos).size();
-		current_pos = index + 2;
-		if (current_length == chunk_size)
+		std::ofstream writeObj;
+		if (_bodyFile.empty())
+			_bodyFile = generate_file_name();
+		writeObj.open(_bodyFile.c_str(), std::ios::out | std::ios::app);
+		if (!writeObj.is_open())
 		{
-			chunk_size_line = true;       
-			body_length += current_length;
-			CheckBodyMaxSize();
+			
+			errorCode = 500;
 			if (errorCase())
-				return ;
-		}         
+				return;
+		}
+		else
+		{
+
+			
+			if (isHexStr(s1))
+			{
+				
+				int check = hexToDec(s1);
+				
+				
+				if (check == 0)
+				{
+					
+					body_section = false;
+					request_end = true;
+					chunkedBody = false;
+					chunk_size_line = false;
+					return;
+				}
+				else
+				{
+
+					return;
+				}
+			}
+
+			writeObj << s1;
+			writeObj.close();
+			
+			current_length += s1.size();
+			
+			
+			body_length += current_length;
+			if (current_length == chunk_size)
+			{
+				chunk_size_line = true;
+				CheckBodyMaxSize();
+				if (errorCase())
+					return;
+			}
+		}
 	}
 }
 
-void	Request::CheckBody()
+void	Request::extractContentLen(size_t &len)
 {
-	if (header_fields.find("Content-Length:") == header_fields.end()
-		&& header_fields.find("Transfer-Encoding:") == header_fields.end())
+	std::string s;
+
+	if (header_fields.find("Content-Length:") != header_fields.end())
+	{
+		s = header_fields.find("Content-Length:")->second[0];
+
+		for (size_t i = 0; i < s.size(); i++)
+		{
+			if ( !(s[i] >= '0' && s[i] <= '9') )
+			{
+				errorCode = 400;
+				return;
+			}
+		}
+
+		len = std::atoi(s.c_str());
+	}
+}
+
+void Request::CheckBody()
+{
+	size_t ln = 0;
+	
+	FirstSection = false;
+	if (header_fields.find("Content-Length:") == header_fields.end() && header_fields.find("Transfer-Encoding:") == header_fields.end())
 	{
 		
 		request_end = true;
 		body_section = false;
+		
+	}
+	else if(method == "GET" && (header_fields.find("Content-Length:") != header_fields.end() || header_fields.find("Transfer-Encoding:") != header_fields.end()))
+	{
+		request_end = true;
+		body_section = false;
+	}
+	else if(method == "DELETE" && (header_fields.find("Content-Length:") != header_fields.end() || header_fields.find("Transfer-Encoding:") != header_fields.end()))
+	{
+		request_end = true;
+		body_section = false;
+	}
+	else if (header_fields.find("Transfer-Encoding:") != header_fields.end())
+	{
+		body_section = true;
+		chunkedBody = true;
+		request_data.insert(0, "\r\n");
+		// std::cerr << "CHECKED" ;
+	}
+	else if (header_fields.find("Content-Length:") != header_fields.end())
+	{
+		
+		unchunkedBody = true;
+		chunkedBody = false;
+		extractContentLen(ln);
+		if (errorCase())
+			return;
+		if (!serv.get_max_body_size_directive().empty())
+		{
+			size_t maxSizeAllowed = std::atoi(serv.get_max_body_size_directive().c_str());
+			if (ln  > maxSizeAllowed)
+			{
+				errorCode = 413;
+				return;
+			}
+		}
+	}
+
+}
+
+void Request::ContentLengthCase()
+{
+	std::ofstream writeObj;
+	std::string s1;
+
+	if (_bodyFile.empty())
+		_bodyFile = generate_file_name();
+	writeObj.open(_bodyFile.c_str(), std::ios::out | std::ios::app);
+	if (!writeObj.is_open())
+	{
+		
+		errorCode = 500;
+		if (errorCase())
+			return;
 	}
 	else
-		body_section = true;
-}
-
-void	Request::ContentLengthCase()
-{
-	requestBody.append(request_data.substr(current_pos, index - current_pos));
-	body_length += request_data.substr(current_pos, index - current_pos).size();
-	CheckBodyMaxSize();
-	if (errorCase())
-		return ;
-	current_pos = index + 2;
-	if (header_fields.find("Content-Length:")->second.size()
-	&& body_length == (unsigned long)(std::atoi(header_fields.find("Content-Length:")->second[0].c_str())) )
 	{
-		body_section = false;  	
-		request_end = true;
+		
+		s1 = getStrToAdd();
+		writeObj << s1;
+		writeObj.close();
+		
+		body_length += s1.size();
+		CheckBodyMaxSize();
+		if (errorCase())
+			return;
+		
+		if (header_fields.find("Content-Length:")->second.size() && body_length == (unsigned long)(std::atoi(header_fields.find("Content-Length:")->second[0].c_str())))
+		{
+			unchunkedBody = false;
+			request_end = true;
+		}
+
 	}
 }
 
-bool 			Request::parse(int socket, std::string s, std::map<int, std::vector<ft::server> > m)
+bool Request::parse(int socket, std::string s, std::map<int, std::vector<ft::server> > m)
 {
-	request_data.append(s);
+	 std::string _line;
+	
+
 	errorCode = 0;
-    while (find_line(request_data, current_pos) && !request_end)
-    {
-		std::cout << "\nHEEEEEERE" << std::endl;
-        if (start_line_section)
-        {
-			setRequestLine(request_data.substr(current_pos, index - current_pos));
-			if (errorCase())
-				return (true);
-			start_line_section = false;
-			headers_section = true;
-			current_pos = index + 2; 
-			checkUriErrors();
-			if (errorCase())
-				return (true);
-        }
-        if (headers_section)
-        {
-			
-			
- 			if (current_pos == index)
+	request_data.append(s);
+
+
+	if (FirstSection  && !request_end)
+	{
+		while (FirstSection && !request_end && find_line(request_data, 0, _line))
+		{
+
+			if (start_line_section)
 			{
-				headers_section = false;
-				checkRequestErrors();
+				setRequestLine(_line);
 				if (errorCase())
 					return (true);
-				serverMatching(socket, m);
+				start_line_section = false;
+				headers_section = true;
+				// current_pos = 0;
+				checkUriErrors();
 				if (errorCase())
 					return (true);
-				locationMatching();
-				if (errorCase())
-					return (true);
-				CheckBody();	
+			}
+			else if (headers_section)
+			{
+				if (index == 0)
+				{
+
+					headers_section = false;
+					checkRequestErrors();
+					if (errorCase())
+						return (true);
+					serverMatching(socket, m);
+					if (errorCase())
+						return (true);
+					locationMatching();
+					if (errorCase())
+						return (true);
+					CheckBody();
+				}
+				else
+				{
+					setHeaderLine(_line);
+					if (errorCase())
+						return (true);
+				}
+
 				
+			}
+
+		}
+	}
+	if (unchunkedBody && !request_end)
+	{
+		
+
+		ContentLengthCase();
+		
+				
+		if (errorCase())
+			return (true);
+	}
+	if (chunkedBody && !request_end)
+	{
+					
+		size_t 			a = 0;
+		size_t 			b = 0;
+		std::string		 s;
+		std::ofstream writeObj;
+		bool condition = true;
+
+		while (chunk_size > 0 && condition)
+		{
+			condition = false;
+			if (chunk_size_line)
+			{
+				if ( ((a = request_data.find("\r\n", i_index )) != std::string::npos)   &&  ((b = request_data.find("\r\n", a + 2)) != std::string::npos)  && a != b  )
+				{
+					condition = true;
+					s = request_data.substr(a + 2, b - (a + 2));
+					i_index  = b + 2;
+					chunk_size = hexToDec(s);
+					chunk_size_line = false;
+					current_length = 0;
+					CheckBodyMaxSizee(chunk_size);
+					if (errorCase())
+						return (true);
+					
+					if (chunk_size == 0)
+					{
+
+						body_section = false;
+						chunkedBody = false;
+						request_end = true;				
+					}
+				}
+			}
+			
+			else
+			{
+				
+				
+						
+				if (_bodyFile.empty())
+				{
+					_bodyFile = generate_file_name();
+				}
+				writeObj.open(_bodyFile.c_str(), std::ios::out | std::ios::app);
+				if (!writeObj.is_open())
+				{
+				
+					errorCode = 500;
+					if (errorCase())
+						return (true);
+				}
+				else 
+				{
+					
+
+					while (current_length < chunk_size && i_index  <  request_data.size() )
+					{
+						
+						condition = true;
+						writeObj << request_data[i_index++];	
+						current_length++;
+						body_length++;
+						CheckBodyMaxSize();
+						if (errorCase())
+							return (true);
+						if (current_length == chunk_size)
+						{
+
+							chunk_size_line = true;
+						}
+							
+					}
+
+					writeObj.close();
+
+
+				}
+			
+
+			}
+		}
+
+	}
+
+	return (request_end);
+}
+
+void	Request::transferEncodingChunked2()
+{
+	std::string line_;
+
+	if (chunk_size_line)
+	{
+		
+		find_line(request_data, 0, line_);
+		current_length = 0;
+		std::vector<std::string> tokens = get_tokens(line_ + ";", ";");
+		if (tokens.size())
+			chunk_size = hexToDec(tokens[0]);
+		if (chunk_size == 0)
+		{
+			
+			body_section = false;
+			request_end = true;
+			chunkedBody = false;
+		}		
+		chunk_size_line = false;
+	}
+	else
+	{
+		std::ofstream writeObj;
+
+		if (_bodyFile.empty())
+			_bodyFile = generate_file_name();
+		writeObj.open(_bodyFile.c_str(), std::ios::out | std::ios::app);
+		if (!writeObj.is_open())
+		{
+			
+			errorCode = 500;
+			if (errorCase())
+				return;
+		}		
+		else
+		{
+			if (request_data.size() + current_length <= chunk_size)
+			{
+				writeObj << request_data;
+				writeObj.close();
+				current_length += request_data.size();
+				body_length += current_length;
+				if (current_length == chunk_size)
+				{
+					chunk_size_line = true;
+					CheckBodyMaxSize();
+					if (errorCase())
+						return;				
+				}
 			}
 			else
 			{
-				setHeaderLine(request_data.substr(current_pos, index - current_pos));
-				if (errorCase())
-					return (true);
+				
+				writeObj << request_data.substr(0, chunk_size - current_length);
+				writeObj.close();
+				current_length += chunk_size - current_length;
+				body_length += current_length;
+				request_data = request_data.substr((chunk_size - current_length) , request_data.size() - (chunk_size - current_length));
+				if (current_length == chunk_size)
+				{
+					current_length = 0;
+					chunk_size_line = true;
+					CheckBodyMaxSize();
+					if (errorCase())
+						return;				
+				}
 			}
-
-			current_pos = index + 2;           
-        }
-        if (body_section)
-        {
-			if (header_fields.find("Transfer-Encoding:") != header_fields.end())
-			{
-				transferEncodingChunked();
-				if (errorCase())
-					return (true);
-			}
-			else if (header_fields.find("Content-Length:") != header_fields.end())
-			{
-				ContentLengthCase();
-				if (errorCase())
-					return (true);
-			}
-
-        }
-    }
-	return (request_end);
-
+		}
+	}
 }
 
-void	Request::locationMatching()
+
+void Request::locationMatching()
 {
-	std::string					uri = target;				
-	size_t						pos = 0;
+	std::string uri = target;
 
 	for (size_t i = 0; i < serv.get_location().size(); i++)
 	{
-	
-		if (serv.get_location()[i].get_dir() == target )
+
+		if (serv.get_location()[i].get_dir() == target.substr(0, serv.get_location()[i].get_dir().length())) // edited this
 		{
 			loc = serv.get_location()[i];
-			return ;
+			return;
 		}
 	}
-
-			// //std::cout << "\033[1;36mEEEEEEE: \033[0m" << uri << std::endl;
-	while ((pos = uri.rfind("/", pos)) != std::string::npos )
-	{
-		uri = uri.substr(0, pos);
-		if (uri.empty())
-		{
-			errorCode = 404;
-			return;			
-			
-		}
-		for (size_t i = 0; i < serv.get_location().size(); i++)
-		{
-			if (serv.get_location()[i].get_dir() == uri )
-			{
-				loc = serv.get_location()[i];
-				
-				return ;
-			}
-		}	
-		pos = 0;	
-	}
-	
+	errorCode = 404;
+	return;
 }
 
-void	Request::setRequestEnd(bool x)
+void Request::setRequestEnd(bool x)
 {
 	request_end = x;
 }
 
-bool	Request::errorCase()
+bool Request::errorCase()
 {
 	if (errorCode != 0)
 	{
@@ -793,6 +952,90 @@ bool	Request::errorCase()
 		return (true);
 	}
 	return (false);
+}
+
+std::string Request::generate_file_name()
+{
+	std::stringstream strStream;
+	std::string str;
+
+	while (true)
+	{
+
+		srand((int)time(0));
+		int r = rand() % 7000;
+
+		strStream << r;
+		strStream >> str;
+		str = "./FILES/file" + str;
+		if (!isResourceExist(str))
+			break;
+	}
+	
+	return (str + getBodyFileExtension());
+}
+
+bool Request::isResourceExist(std::string s)
+{
+	std::string filename = s;
+	struct stat fileInfo;
+
+	if (stat(filename.c_str(), &fileInfo) == 0)
+		return true;
+	return false;
+}
+
+std::string Request::getStrToAdd()
+{
+	std::string s;
+
+	size_t contLen = (unsigned long)(std::atoi(header_fields.find("Content-Length:")->second[0].c_str()));
+	if (request_data.size() + body_length > contLen)
+	{
+		return (request_data.substr(0, contLen - body_length));
+	}
+	else
+	{
+		s = request_data;
+		request_data.clear();
+		return (s);
+	}
+}
+
+std::string Request::getBodyFileExtension()
+{
+	std::string extension = "";
+	std::string s;
+	std::vector<std::string> tokens;
+
+	if (header_fields.find("Content-Type:") != header_fields.end())
+	{
+		
+		s = header_fields.find("Content-Type:")->second[0];
+		s.push_back(';');
+		tokens = get_tokens(s, ";");
+		tokens[0].push_back('/');
+		tokens = get_tokens(tokens[0], "/");
+
+		if (tokens.size() > 1)
+			extension = "." + tokens[1];
+	}
+	return (extension);
+}
+
+std::string		Request::extractQuerieString()
+{
+	std::vector<std::string> 	tokens;
+	std::string 				s;
+
+	if (target.find("?", 0) != std::string::npos)
+	{
+		s = target + "?";
+		tokens = get_tokens(s, "?");
+		if (tokens.size() == 2)
+			return (tokens[1]);
+	}
+	return (std::string());
 }
 
 Request::~Request() {}

@@ -36,14 +36,14 @@ void	http::setSocketServers(std::map<int, std::vector<ft::server> > x)
 void    http::set_location(std::string s, ft::location& loc)
 {
     std::vector<std::string>    tokens;
-	std::string arr[3] = {"root", "alias", "autoindex"};
+	std::string arr[4] = {"root", "alias", "autoindex", "CGI"};
 	std::string arr2[3] = {"index", "limit_except", "return"};
 
     tokens = get_tokens(s, " ");
 
     if (tokens.size())
     {
-        for(int i = 0; i < 3; i++)
+        for(int i = 0; i < 4; i++)
         {
             if (tokens[0] == arr[i])
             {
@@ -63,7 +63,7 @@ void    http::set_location(std::string s, ft::location& loc)
                 if (tokens[0] != "return" && tokens.size() < 2)
                     throw (std::invalid_argument("Location block: directive expects 1 value at least but found less!"));
 				else if (tokens[0] == "return" && tokens.size() != 3)
-					throw (std::invalid_argument("Location block: return directive expects 2 values but found less!"));
+					throw (std::invalid_argument("Location block: return directive expects 2 values but found less/more!"));
                 for (std::vector<std::string>::size_type i = 1; i < tokens.size(); i++)
                     vec.push_back(tokens[i]);
                 loc.setter(tokens[0], std::string(), vec);
@@ -96,12 +96,11 @@ void    http::set_server(std::string s, ft::server& serv,  bool *location_block_
     {
         if (*location_block_open == false && *location_on == false)
         {
-                // std::cout << "aaaaaa : " << tokens[0] << std::endl;
+                
             for(int i = 0; i < 3; i++)
             {
                 if (tokens[0] == arr[i])
                 {
-
                     if (tokens.size() != 2)
                         throw (std::invalid_argument("Server block: directive root/listen expect only 1 value but found more!"));
                     serv.setter(tokens[0], tokens[1], std::vector<std::string>());
@@ -189,6 +188,7 @@ void    http::set_server(std::string s, ft::server& serv,  bool *location_block_
                         						
                         }
                         set_location(s1, loc);
+                        loc.checkLocationValidity();
                         serv.set_location_blocks(loc)/*.push_back(loc)*/;
 						
                         // std::cout << "setting loc: " <<  serv.get_location().size()<<std::endl;
@@ -328,6 +328,7 @@ void http::parser(std::string config_file)
 						throw(std::invalid_argument("Http block: Syntax Error!"));						
 					}
 					set_server(s1, serv, &location_block_open, &location_on, loc, &location_first_line);
+                    serv.checkServerValidity();
 					virtual_servers.push_back(serv);
 
 					server_first_line = true;

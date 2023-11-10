@@ -1,7 +1,7 @@
 #include "server.hpp"
 
 ft::server::server() : listen_directive(std::string()), server_name_directive(std::vector<std::string>()), max_body_size_directive(std::string()),
- root_directive(std::string()), error_pages_directive(std::vector<std::string>()), index_directive(std::vector<std::string>()){}
+ root_directive(std::string()), error_pages_directive(std::vector<std::vector<std::string> >()), index_directive(std::vector<std::string>()){}
 
 ft::server::server(ft::server const& other)
 {
@@ -71,6 +71,7 @@ std::pair<std::string, std::string>	ft::server::getPortAndIpAddress()
 
 	if (listen_directive.empty())
 		listen_directive = "80";
+	// std::cout << "THE LISTEN: " << listen_directive << std::endl;
 	tokens = get_tokens(listen_directive + ":", ":");
 	if (tokens.size() == 1)
 		return (std::make_pair("", tokens[0]));
@@ -90,7 +91,7 @@ std::string ft::server::get_root_directive() const
 	return (root_directive);
 }
 
-std::vector<std::string> ft::server::get_error_pages_directive() const
+std::vector<std::vector<std::string> >	ft::server::get_error_pages_directive() const
 {
 	return (error_pages_directive);
 }
@@ -104,7 +105,7 @@ std::vector<std::string> ft::server::get_index_directive() const
 
 void	ft::server::set_location_blocks(ft::location x) 
 {
-	
+	x.checkLocationValidity();
 	location_blocks.push_back(x);
 }
 
@@ -122,6 +123,7 @@ void	ft::server::set_server_name_directive(std::vector<std::string>  x)
 void	ft::server::set_max_body_size_directive(std::string  x) 
 {
 	max_body_size_directive = x;
+	checkMaxBodySizeValidity();
 }
 
 void	ft::server::set_root_directive(std::string  x) 
@@ -131,7 +133,7 @@ void	ft::server::set_root_directive(std::string  x)
 
 void	ft::server::set_error_pages_directive(std::vector<std::string>  x) 
 {
-	error_pages_directive = x;
+	error_pages_directive.push_back (x);
 }
 
 void	ft::server::set_index_directive(std::vector<std::string>  x) 
@@ -150,7 +152,7 @@ void	ft::server::setter(std::string dir, std::string value, std::vector<std::str
 	for (int i = 0; i < 3; i++)
 	{
 		if (dir == arr1[i])
-		{
+		{		
 			(this->*f1[i])(value);
 			return;
 		}
@@ -163,6 +165,75 @@ void	ft::server::setter(std::string dir, std::string value, std::vector<std::str
 			(this->*f2[i])(v);
 			return;
 		}
+	}
+}
+
+void	ft::server::checkMaxBodySizeValidity()
+{
+	std::string	validChars("0123456789");
+	for (std::string::size_type i = 0; i < max_body_size_directive.size(); i++)
+	{
+		if (validChars.find(max_body_size_directive[i], 0) == std::string::npos)
+			throw (std::invalid_argument("Server block: invalid max_body_size_directive"));
+	}
+}
+
+void	ft::server::checkServerValidity()
+{
+	if (listen_directive.empty())
+		throw(std::invalid_argument("Server block: listen_directive Not Found!"));
+	if (root_directive.empty())
+		throw(std::invalid_argument("Server block: root_directive Not Found!"));
+	checkListenDirectiveValidity();
+}
+
+void	ft::server::checkListenDirectiveValidity()
+{
+	std::vector<std::string> 	tokens;
+	std::string					s;
+
+	if (listen_directive.find(":", 0)!= std::string::npos)
+	{
+		s = listen_directive + ":";
+		tokens = get_tokens(s, ":");
+		if (tokens.size() != 2)
+			throw (std::invalid_argument("Server block: listen_directive : invalid value!"));
+		checkListenIpPart(tokens[0]);
+		checkListenPortPart(tokens[1]);	
+	}
+	else
+		checkListenPortPart(listen_directive);
+}
+
+void	ft::server::checkListenIpPart(std::string s)
+{
+	std::vector<std::string> 	tokens;
+
+	s.push_back('.');
+	tokens = get_tokens(s, ".");
+	if (tokens.size() != 4)
+		throw (std::invalid_argument("Server block: listen_directive : invalid ip Address!"));
+	for (size_t i = 0; i < 4; i++)
+	{
+		if ( !(tokens[i].size() >= 1 && tokens[i].size() <= 3 ) )
+			throw (std::invalid_argument("Server block: listen_directive : invalid ip Address!"));
+
+		for (size_t j = 0; j < tokens[i].size(); j++)
+		{
+			if ( !(tokens[i][j] >= '0' && tokens[i][j] <= '9') )
+				throw (std::invalid_argument("Server block: listen_directive : invalid ip Address!"));
+		}
+		if ( !(std::atoi(tokens[i].c_str()) >= 0 && std::atoi(tokens[i].c_str()) <= 255 ))
+			throw (std::invalid_argument("Server block: listen_directive : invalid ip Address!"));
+	}
+}
+
+void	ft::server::checkListenPortPart(std::string s)
+{
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		if ( !(s[i] >= '0' && s[i] <= '9') )
+			throw (std::invalid_argument("Server block: listen_directive : invalid Port!"));
 	}
 }
 

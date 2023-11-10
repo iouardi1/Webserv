@@ -1,0 +1,15 @@
+h1
+{
+	background-color: #A68F97;
+	color: #fff;
+	font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+	margin: auto;
+}
+body 
+{
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	background-color: #79717A;
+}
